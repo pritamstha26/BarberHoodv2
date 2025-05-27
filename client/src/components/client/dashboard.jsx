@@ -1,15 +1,14 @@
-"use client";
-
-import { useState } from "react";
+import React, { useState } from "react";
+import { Container, Row, Col, Card, Table, Badge } from "react-bootstrap";
 import {
-  Calendar,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
-} from "lucide-react";
+  FaCalendarAlt,
+  FaClock,
+  FaCheckCircle,
+  FaTimesCircle,
+  FaExclamationCircle,
+} from "react-icons/fa";
 
-export default function Dashboard() {
+const Dashboard = () => {
   const [requests] = useState([
     {
       id: "REQ-001",
@@ -47,50 +46,57 @@ export default function Dashboard() {
       estimatedCompletion: "2024-01-30",
       description: "Migration from MySQL to PostgreSQL database",
     },
+    {
+      id: "REQ-005",
+      service: "Cloud Migration",
+      status: "In Progress",
+      priority: "Medium",
+      dateRequested: "2024-01-18",
+      estimatedCompletion: "2024-02-20",
+      description: "Migration of services to AWS cloud infrastructure",
+    },
   ]);
 
   const getStatusIcon = (status) => {
     switch (status) {
       case "Completed":
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <FaCheckCircle className="text-success me-2" />;
       case "In Progress":
-        return <Clock className="w-5 h-5 text-blue-500" />;
+        return <FaClock className="text-primary me-2" />;
       case "Pending":
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        return <FaExclamationCircle className="text-warning me-2" />;
       case "Cancelled":
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <FaTimesCircle className="text-danger me-2" />;
       default:
-        return <Clock className="w-5 h-5 text-gray-500" />;
+        return <FaClock className="text-secondary me-2" />;
     }
   };
 
-  const getStatusBadge = (status) => {
-    const baseClasses = "px-3 py-1 rounded-full text-sm font-medium";
+  const getStatusVariant = (status) => {
     switch (status) {
       case "Completed":
-        return `${baseClasses} bg-green-100 text-green-800`;
+        return "success";
       case "In Progress":
-        return `${baseClasses} bg-blue-100 text-blue-800`;
+        return "primary";
       case "Pending":
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
+        return "warning";
       case "Cancelled":
-        return `${baseClasses} bg-red-100 text-red-800`;
+        return "danger";
       default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
+        return "secondary";
     }
   };
 
-  const getPriorityBadge = (priority) => {
-    const baseClasses = "px-2 py-1 rounded text-xs font-medium";
+  const getPriorityVariant = (priority) => {
     switch (priority) {
       case "High":
-        return `${baseClasses} bg-red-100 text-red-700`;
+        return "danger";
       case "Medium":
-        return `${baseClasses} bg-yellow-100 text-yellow-700`;
+        return "warning";
       case "Low":
-        return `${baseClasses} bg-green-100 text-green-700`;
+        return "success";
       default:
-        return `${baseClasses} bg-gray-100 text-gray-700`;
+        return "secondary";
     }
   };
 
@@ -102,145 +108,154 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="ml-64 p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Dashboard</h1>
-        <p className="text-gray-600">
+    <Container fluid className="p-4">
+      <div className="mb-4">
+        <h1 className="display-5 fw-bold text-dark mb-2">Dashboard</h1>
+        <p className="text-muted">
           Welcome back! Here's an overview of your service requests.
         </p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">
-                Total Requests
-              </p>
-              <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Calendar className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+      <Row className="g-4 mb-4">
+        <Col md={3}>
+          <Card className="h-100 border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <Card.Text className="text-muted mb-1 small">
+                    Total Requests
+                  </Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0">
+                    {stats.total}
+                  </Card.Title>
+                </div>
+                <div className="bg-primary bg-opacity-10 p-3 rounded">
+                  <FaCalendarAlt className="text-primary fs-4" />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Completed</p>
-              <p className="text-3xl font-bold text-green-600">
-                {stats.completed}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
-              <CheckCircle className="w-6 h-6 text-green-600" />
-            </div>
-          </div>
-        </div>
+        <Col md={3}>
+          <Card className="h-100 border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <Card.Text className="text-muted mb-1 small">
+                    Completed
+                  </Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0 text-success">
+                    {stats.completed}
+                  </Card.Title>
+                </div>
+                <div className="bg-success bg-opacity-10 p-3 rounded">
+                  <FaCheckCircle className="text-success fs-4" />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">In Progress</p>
-              <p className="text-3xl font-bold text-blue-600">
-                {stats.inProgress}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
-              <Clock className="w-6 h-6 text-blue-600" />
-            </div>
-          </div>
-        </div>
+        <Col md={3}>
+          <Card className="h-100 border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <Card.Text className="text-muted mb-1 small">
+                    In Progress
+                  </Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0 text-primary">
+                    {stats.inProgress}
+                  </Card.Title>
+                </div>
+                <div className="bg-primary bg-opacity-10 p-3 rounded">
+                  <FaClock className="text-primary fs-4" />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600">Pending</p>
-              <p className="text-3xl font-bold text-yellow-600">
-                {stats.pending}
-              </p>
-            </div>
-            <div className="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
-              <AlertCircle className="w-6 h-6 text-yellow-600" />
-            </div>
-          </div>
-        </div>
-      </div>
+        <Col md={3}>
+          <Card className="h-100 border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <Card.Text className="text-muted mb-1 small">
+                    Pending
+                  </Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0 text-warning">
+                    {stats.pending}
+                  </Card.Title>
+                </div>
+                <div className="bg-warning bg-opacity-10 p-3 rounded">
+                  <FaExclamationCircle className="text-warning fs-4" />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Requests Table */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-800">
-            Recent Service Requests
-          </h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50">
+      <Card className="border-0 shadow-sm">
+        <Card.Header className="bg-white border-bottom">
+          <Card.Title className="mb-0 h5">Recent Service Requests</Card.Title>
+        </Card.Header>
+        <Card.Body className="p-0">
+          <Table responsive hover className="mb-0">
+            <thead className="table-light">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Request ID
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Status
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Priority
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Date Requested
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Est. Completion
-                </th>
+                <th className="px-4 py-3">Request ID</th>
+                <th className="px-4 py-3">Service</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3">Priority</th>
+                <th className="px-4 py-3">Date Requested</th>
+                <th className="px-4 py-3">Est. Completion</th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
+            <tbody>
               {requests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
+                <tr key={request.id}>
+                  <td className="px-4 py-3">
+                    <div className="d-flex align-items-center">
                       {getStatusIcon(request.status)}
-                      <span className="ml-2 text-sm font-medium text-gray-900">
-                        {request.id}
-                      </span>
+                      <span className="fw-medium">{request.id}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <div className="text-sm text-gray-900">
-                      {request.service}
-                    </div>
-                    <div className="text-sm text-gray-500">
-                      {request.description}
+                  <td className="px-4 py-3">
+                    <div>
+                      <div className="fw-medium">{request.service}</div>
+                      <small className="text-muted">
+                        {request.description}
+                      </small>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={getStatusBadge(request.status)}>
+                  <td className="px-4 py-3">
+                    <Badge bg={getStatusVariant(request.status)}>
                       {request.status}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={getPriorityBadge(request.priority)}>
+                  <td className="px-4 py-3">
+                    <Badge
+                      bg={getPriorityVariant(request.priority)}
+                      className="text-white"
+                    >
                       {request.priority}
-                    </span>
+                    </Badge>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.dateRequested}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {request.estimatedCompletion}
-                  </td>
+                  <td className="px-4 py-3">{request.dateRequested}</td>
+                  <td className="px-4 py-3">{request.estimatedCompletion}</td>
                 </tr>
               ))}
             </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
+          </Table>
+        </Card.Body>
+      </Card>
+    </Container>
   );
-}
+};
+
+export default Dashboard;

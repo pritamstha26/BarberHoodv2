@@ -1,9 +1,17 @@
-"use client";
+import React, { useState } from "react";
+import {
+  Container,
+  Card,
+  Form,
+  Row,
+  Col,
+  Button,
+  Alert,
+  ProgressBar,
+} from "react-bootstrap";
+import { FaPaperPlane, FaUpload, FaTimes, FaSave } from "react-icons/fa";
 
-import { useState } from "react";
-import { Send, Upload, X } from "lucide-react";
-
-export default function RequestService() {
+const RequestService = () => {
   const [formData, setFormData] = useState({
     serviceType: "",
     priority: "Medium",
@@ -12,9 +20,12 @@ export default function RequestService() {
     budget: "",
     deadline: "",
     contactMethod: "email",
+    urgency: "normal",
   });
 
   const [attachments, setAttachments] = useState([]);
+  const [validated, setValidated] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const serviceTypes = [
     "Website Development",
@@ -25,7 +36,20 @@ export default function RequestService() {
     "Cloud Services",
     "Technical Support",
     "Consulting",
+    "Digital Marketing",
+    "E-commerce Solutions",
+    "API Development",
     "Other",
+  ];
+
+  const budgetRanges = [
+    "Under $1,000",
+    "$1,000 - $5,000",
+    "$5,000 - $10,000",
+    "$10,000 - $25,000",
+    "$25,000 - $50,000",
+    "$50,000+",
+    "To be discussed",
   ];
 
   const handleInputChange = (e) => {
@@ -49,10 +73,19 @@ export default function RequestService() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    // Handle form submission
+    const form = e.currentTarget;
+
+    if (form.checkValidity() === false) {
+      e.stopPropagation();
+      setValidated(true);
+      return;
+    }
+
     console.log("Form Data:", formData);
     console.log("Attachments:", attachments);
-    alert("Service request submitted successfully!");
+
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 5000);
 
     // Reset form
     setFormData({
@@ -63,266 +96,331 @@ export default function RequestService() {
       budget: "",
       deadline: "",
       contactMethod: "email",
+      urgency: "normal",
     });
     setAttachments([]);
+    setValidated(false);
+  };
+
+  const handleSaveDraft = () => {
+    alert("Draft saved successfully!");
   };
 
   return (
-    <div className="ml-64 p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">
-          Request Service
-        </h1>
-        <p className="text-gray-600">
+    <Container fluid className="p-4">
+      <div className="mb-4">
+        <h1 className="display-5 fw-bold text-dark mb-2">Request Service</h1>
+        <p className="text-muted">
           Submit a new service request and we'll get back to you soon.
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg p-8">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Service Type and Priority Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label
-                htmlFor="serviceType"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Service Type *
-              </label>
-              <select
-                id="serviceType"
-                name="serviceType"
-                value={formData.serviceType}
+      {showSuccess && (
+        <Alert
+          variant="success"
+          className="mb-4"
+          dismissible
+          onClose={() => setShowSuccess(false)}
+        >
+          <Alert.Heading>Success!</Alert.Heading>
+          Your service request has been submitted successfully. We'll contact
+          you within 24 hours.
+        </Alert>
+      )}
+
+      <Card className="border-0 shadow-sm">
+        <Card.Header className="bg-primary text-white">
+          <Card.Title className="mb-0 h5">
+            <FaPaperPlane className="me-2" />
+            New Service Request
+          </Card.Title>
+        </Card.Header>
+        <Card.Body className="p-4">
+          <Form noValidate validated={validated} onSubmit={handleSubmit}>
+            {/* Service Type and Priority Row */}
+            <Row className="g-3 mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">
+                    Service Type <span className="text-danger">*</span>
+                  </Form.Label>
+                  <Form.Select
+                    name="serviceType"
+                    value={formData.serviceType}
+                    onChange={handleInputChange}
+                    required
+                  >
+                    <option value="">Select a service</option>
+                    {serviceTypes.map((type) => (
+                      <option key={type} value={type}>
+                        {type}
+                      </option>
+                    ))}
+                  </Form.Select>
+                  <Form.Control.Feedback type="invalid">
+                    Please select a service type.
+                  </Form.Control.Feedback>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">Priority Level</Form.Label>
+                  <Form.Select
+                    name="priority"
+                    value={formData.priority}
+                    onChange={handleInputChange}
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                    <option value="Urgent">Urgent</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Title */}
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-medium">
+                Request Title <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Control
+                type="text"
+                name="title"
+                value={formData.title}
                 onChange={handleInputChange}
                 required
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select a service</option>
-                {serviceTypes.map((type) => (
-                  <option key={type} value={type}>
-                    {type}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="priority"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Priority Level
-              </label>
-              <select
-                id="priority"
-                name="priority"
-                value={formData.priority}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-                <option value="Urgent">Urgent</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Title */}
-          <div>
-            <label
-              htmlFor="title"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Request Title *
-            </label>
-            <input
-              type="text"
-              id="title"
-              name="title"
-              value={formData.title}
-              onChange={handleInputChange}
-              required
-              placeholder="Brief title for your service request"
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-            />
-          </div>
-
-          {/* Description */}
-          <div>
-            <label
-              htmlFor="description"
-              className="block text-sm font-medium text-gray-700 mb-2"
-            >
-              Detailed Description *
-            </label>
-            <textarea
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              required
-              rows={6}
-              placeholder="Please provide detailed information about your requirements, goals, and any specific features you need..."
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
-            />
-          </div>
-
-          {/* Budget and Deadline Row */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <label
-                htmlFor="budget"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Budget Range
-              </label>
-              <select
-                id="budget"
-                name="budget"
-                value={formData.budget}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="">Select budget range</option>
-                <option value="Under $1,000">Under $1,000</option>
-                <option value="$1,000 - $5,000">$1,000 - $5,000</option>
-                <option value="$5,000 - $10,000">$5,000 - $10,000</option>
-                <option value="$10,000 - $25,000">$10,000 - $25,000</option>
-                <option value="$25,000+">$25,000+</option>
-                <option value="To be discussed">To be discussed</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="deadline"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Preferred Deadline
-              </label>
-              <input
-                type="date"
-                id="deadline"
-                name="deadline"
-                value={formData.deadline}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Brief title for your service request"
               />
-            </div>
-          </div>
+              <Form.Control.Feedback type="invalid">
+                Please provide a request title.
+              </Form.Control.Feedback>
+            </Form.Group>
 
-          {/* Contact Method */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Preferred Contact Method
-            </label>
-            <div className="flex space-x-6">
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="contactMethod"
-                  value="email"
-                  checked={formData.contactMethod === "email"}
-                  onChange={handleInputChange}
-                  className="mr-2 text-blue-600"
-                />
-                Email
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="contactMethod"
-                  value="phone"
-                  checked={formData.contactMethod === "phone"}
-                  onChange={handleInputChange}
-                  className="mr-2 text-blue-600"
-                />
-                Phone
-              </label>
-              <label className="flex items-center">
-                <input
-                  type="radio"
-                  name="contactMethod"
-                  value="video-call"
-                  checked={formData.contactMethod === "video-call"}
-                  onChange={handleInputChange}
-                  className="mr-2 text-blue-600"
-                />
-                Video Call
-              </label>
-            </div>
-          </div>
-
-          {/* File Attachments */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Attachments
-            </label>
-            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-              <Upload className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-              <div className="text-sm text-gray-600 mb-2">
-                <label
-                  htmlFor="file-upload"
-                  className="cursor-pointer text-blue-600 hover:text-blue-500"
-                >
-                  Click to upload files
-                </label>
-                <span> or drag and drop</span>
-              </div>
-              <p className="text-xs text-gray-500">
-                PNG, JPG, PDF up to 10MB each
-              </p>
-              <input
-                id="file-upload"
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                className="hidden"
-                accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+            {/* Description */}
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-medium">
+                Detailed Description <span className="text-danger">*</span>
+              </Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={6}
+                name="description"
+                value={formData.description}
+                onChange={handleInputChange}
+                required
+                placeholder="Please provide detailed information about your requirements, goals, and any specific features you need..."
               />
-            </div>
+              <Form.Text className="text-muted">
+                Character count: {formData.description.length}/1000
+              </Form.Text>
+              <Form.Control.Feedback type="invalid">
+                Please provide a detailed description.
+              </Form.Control.Feedback>
+            </Form.Group>
 
-            {/* Display uploaded files */}
-            {attachments.length > 0 && (
-              <div className="mt-4 space-y-2">
-                {attachments.map((file, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between bg-gray-50 p-3 rounded-lg"
+            {/* Budget and Deadline Row */}
+            <Row className="g-3 mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">Budget Range</Form.Label>
+                  <Form.Select
+                    name="budget"
+                    value={formData.budget}
+                    onChange={handleInputChange}
                   >
-                    <span className="text-sm text-gray-700">{file.name}</span>
-                    <button
-                      type="button"
-                      onClick={() => removeAttachment(index)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+                    <option value="">Select budget range</option>
+                    {budgetRanges.map((range) => (
+                      <option key={range} value={range}>
+                        {range}
+                      </option>
+                    ))}
+                  </Form.Select>
+                </Form.Group>
+              </Col>
 
-          {/* Submit Button */}
-          <div className="flex justify-end space-x-4 pt-6">
-            <button
-              type="button"
-              className="px-6 py-3 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
-            >
-              Save as Draft
-            </button>
-            <button
-              type="submit"
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
-            >
-              <Send className="w-4 h-4" />
-              <span>Submit Request</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">
+                    Preferred Deadline
+                  </Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="deadline"
+                    value={formData.deadline}
+                    onChange={handleInputChange}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* Contact Method and Urgency */}
+            <Row className="g-3 mb-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">
+                    Preferred Contact Method
+                  </Form.Label>
+                  <div className="d-flex gap-3 mt-2">
+                    <Form.Check
+                      type="radio"
+                      name="contactMethod"
+                      value="email"
+                      checked={formData.contactMethod === "email"}
+                      onChange={handleInputChange}
+                      label="Email"
+                      id="email"
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="contactMethod"
+                      value="phone"
+                      checked={formData.contactMethod === "phone"}
+                      onChange={handleInputChange}
+                      label="Phone"
+                      id="phone"
+                    />
+                    <Form.Check
+                      type="radio"
+                      name="contactMethod"
+                      value="video-call"
+                      checked={formData.contactMethod === "video-call"}
+                      onChange={handleInputChange}
+                      label="Video Call"
+                      id="video-call"
+                    />
+                  </div>
+                </Form.Group>
+              </Col>
+
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">Urgency Level</Form.Label>
+                  <Form.Select
+                    name="urgency"
+                    value={formData.urgency}
+                    onChange={handleInputChange}
+                  >
+                    <option value="normal">Normal</option>
+                    <option value="urgent">Urgent</option>
+                    <option value="asap">ASAP</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+            </Row>
+
+            {/* File Attachments */}
+            <Form.Group className="mb-4">
+              <Form.Label className="fw-medium">Attachments</Form.Label>
+              <div className="border border-2 border-dashed rounded p-4 text-center bg-light">
+                <FaUpload className="text-muted mb-3" size={48} />
+                <div className="mb-2">
+                  <Form.Label
+                    htmlFor="file-upload"
+                    className="btn btn-outline-primary"
+                  >
+                    <FaUpload className="me-2" />
+                    Choose Files
+                  </Form.Label>
+                  <div className="mt-2 text-muted">or drag and drop</div>
+                </div>
+                <p className="text-muted small mb-0">
+                  Supported formats: PNG, JPG, PDF, DOC, DOCX (Max 10MB each)
+                </p>
+                <Form.Control
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  className="d-none"
+                  accept=".png,.jpg,.jpeg,.pdf,.doc,.docx"
+                />
+              </div>
+
+              {/* Display uploaded files */}
+              {attachments.length > 0 && (
+                <div className="mt-3">
+                  <h6 className="fw-medium mb-2">
+                    Uploaded Files ({attachments.length})
+                  </h6>
+                  {attachments.map((file, index) => (
+                    <Alert
+                      key={index}
+                      variant="info"
+                      className="d-flex justify-content-between align-items-center mb-2 py-2"
+                    >
+                      <div className="d-flex align-items-center">
+                        <FaUpload className="me-2 text-primary" />
+                        <span>{file.name}</span>
+                        <small className="text-muted ms-2">
+                          ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                        </small>
+                      </div>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={() => removeAttachment(index)}
+                      >
+                        <FaTimes />
+                      </Button>
+                    </Alert>
+                  ))}
+                </div>
+              )}
+            </Form.Group>
+
+            {/* Progress Indicator */}
+            <div className="mb-4">
+              <Form.Label className="fw-medium">Form Completion</Form.Label>
+              <ProgressBar
+                now={
+                  (((formData.serviceType ? 1 : 0) +
+                    (formData.title ? 1 : 0) +
+                    (formData.description ? 1 : 0)) /
+                    3) *
+                  100
+                }
+                variant={
+                  (formData.serviceType ? 1 : 0) +
+                    (formData.title ? 1 : 0) +
+                    (formData.description ? 1 : 0) ===
+                  3
+                    ? "success"
+                    : "primary"
+                }
+              />
+            </div>
+
+            {/* Submit Buttons */}
+            <div className="d-flex justify-content-between">
+              <Button
+                variant="outline-secondary"
+                onClick={handleSaveDraft}
+                className="d-flex align-items-center gap-2"
+              >
+                <FaSave />
+                Save as Draft
+              </Button>
+
+              <div className="d-flex gap-2">
+                <Button variant="outline-primary">Preview</Button>
+                <Button
+                  variant="primary"
+                  type="submit"
+                  className="d-flex align-items-center gap-2"
+                >
+                  <FaPaperPlane />
+                  Submit Request
+                </Button>
+              </div>
+            </div>
+          </Form>
+        </Card.Body>
+      </Card>
+    </Container>
   );
-}
+};
+
+export default RequestService;

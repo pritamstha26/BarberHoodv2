@@ -1,13 +1,11 @@
-"use client";
-
-import { useState } from "react";
+import React, { useState } from "react";
+import "bootstrap/dist/css/bootstrap.min.css";
 import Sidebar from "./sidebar";
 import Dashboard from "./dashboard";
 import RequestService from "./request-service";
 import Settings from "./settings";
 
-// import { Home, Settings, LogOut, FileText, User } from "lucide-react";
-export default function ClientPortal() {
+function App() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   const renderContent = () => {
@@ -24,11 +22,15 @@ export default function ClientPortal() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="flex">
+    <div className="min-vh-100 bg-light">
+      <div className="d-flex">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-1 p-6">{renderContent()}</main>
+        <main className="flex-fill" style={{ marginLeft: "250px" }}>
+          {renderContent()}
+        </main>
       </div>
     </div>
   );
 }
+
+export default App;

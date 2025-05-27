@@ -1,10 +1,31 @@
-"use client";
+import React, { useState } from "react";
+import {
+  Container,
+  Card,
+  Nav,
+  Tab,
+  Form,
+  Row,
+  Col,
+  Button,
+  Alert,
+  ListGroup,
+  Modal,
+  Badge,
+} from "react-bootstrap";
+import {
+  FaUser,
+  FaLock,
+  FaBell,
+  FaGlobe,
+  FaSave,
+  FaEdit,
+  //   FaShield,
+  FaHistory,
+  FaKey,
+} from "react-icons/fa";
 
-import { useState } from "react";
-import { User, Lock, Bell, Globe, Save } from "lucide-react";
-
-export default function Settings() {
-  const [activeTab, setActiveTab] = useState("profile");
+const Settings = () => {
   const [profileData, setProfileData] = useState({
     firstName: "John",
     lastName: "Doe",
@@ -17,6 +38,7 @@ export default function Settings() {
     state: "NY",
     zipCode: "10001",
     country: "United States",
+    bio: "Experienced project manager with 10+ years in technology sector.",
   });
 
   const [notificationSettings, setNotificationSettings] = useState({
@@ -25,7 +47,20 @@ export default function Settings() {
     pushNotifications: true,
     weeklyReports: true,
     marketingEmails: false,
+    securityAlerts: true,
+    projectUpdates: true,
   });
+
+  const [preferences, setPreferences] = useState({
+    language: "en",
+    timezone: "EST",
+    dateFormat: "MM/DD/YYYY",
+    theme: "light",
+    currency: "USD",
+  });
+
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
 
   const handleProfileChange = (e) => {
     const { name, value } = e.target;
@@ -43,506 +78,617 @@ export default function Settings() {
     }));
   };
 
+  const handlePreferencesChange = (e) => {
+    const { name, value } = e.target;
+    setPreferences((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
   const handleSaveProfile = (e) => {
     e.preventDefault();
-    alert("Profile updated successfully!");
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const handleSaveNotifications = (e) => {
     e.preventDefault();
-    alert("Notification settings updated successfully!");
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
   };
 
-  const tabs = [
-    { id: "profile", label: "Profile", icon: User },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "security", label: "Security", icon: Lock },
-    { id: "preferences", label: "Preferences", icon: Globe },
+  const handleSavePreferences = (e) => {
+    e.preventDefault();
+    setShowSuccess(true);
+    setTimeout(() => setShowSuccess(false), 3000);
+  };
+
+  const loginHistory = [
+    {
+      date: "2024-01-27",
+      time: "10:30 AM",
+      location: "New York, NY",
+      device: "Chrome on Windows",
+    },
+    {
+      date: "2024-01-26",
+      time: "2:15 PM",
+      location: "New York, NY",
+      device: "Safari on iPhone",
+    },
+    {
+      date: "2024-01-25",
+      time: "9:45 AM",
+      location: "New York, NY",
+      device: "Chrome on Windows",
+    },
   ];
 
   return (
-    <div className="ml-64 p-6">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Settings</h1>
-        <p className="text-gray-600">
+    <Container fluid className="p-4">
+      <div className="mb-4">
+        <h1 className="display-5 fw-bold text-dark mb-2">Settings</h1>
+        <p className="text-muted">
           Manage your account settings and preferences.
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-lg">
-        {/* Tab Navigation */}
-        <div className="border-b border-gray-200">
-          <nav className="flex space-x-8 px-6">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 py-4 px-1 border-b-2 font-medium text-sm ${
-                    activeTab === tab.id
-                      ? "border-blue-500 text-blue-600"
-                      : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                  }`}
+      {showSuccess && (
+        <Alert
+          variant="success"
+          className="mb-4"
+          dismissible
+          onClose={() => setShowSuccess(false)}
+        >
+          Settings updated successfully!
+        </Alert>
+      )}
+
+      <Card className="border-0 shadow-sm">
+        <Tab.Container defaultActiveKey="profile">
+          <Card.Header className="bg-white">
+            <Nav variant="tabs" className="card-header-tabs">
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="profile"
+                  className="d-flex align-items-center gap-2"
                 >
-                  <Icon className="w-4 h-4" />
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
-        <div className="p-6">
-          {activeTab === "profile" && (
-            <form onSubmit={handleSaveProfile} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="firstName"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={profileData.firstName}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="lastName"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={profileData.lastName}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="email"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={profileData.email}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="phone"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    id="phone"
-                    name="phone"
-                    value={profileData.phone}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label
-                    htmlFor="company"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Company
-                  </label>
-                  <input
-                    type="text"
-                    id="company"
-                    name="company"
-                    value={profileData.company}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="jobTitle"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Job Title
-                  </label>
-                  <input
-                    type="text"
-                    id="jobTitle"
-                    name="jobTitle"
-                    value={profileData.jobTitle}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label
-                  htmlFor="address"
-                  className="block text-sm font-medium text-gray-700 mb-2"
+                  <FaUser />
+                  <span>Profile</span>
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="notifications"
+                  className="d-flex align-items-center gap-2"
                 >
-                  Address
-                </label>
-                <input
-                  type="text"
-                  id="address"
-                  name="address"
-                  value={profileData.address}
-                  onChange={handleProfileChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div>
-                  <label
-                    htmlFor="city"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={profileData.city}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="state"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    State
-                  </label>
-                  <input
-                    type="text"
-                    id="state"
-                    name="state"
-                    value={profileData.state}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="zipCode"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    ZIP Code
-                  </label>
-                  <input
-                    type="text"
-                    id="zipCode"
-                    name="zipCode"
-                    value={profileData.zipCode}
-                    onChange={handleProfileChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  <FaBell />
+                  <span>Notifications</span>
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="security"
+                  className="d-flex align-items-center gap-2"
                 >
-                  <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
-                </button>
-              </div>
-            </form>
-          )}
-
-          {activeTab === "notifications" && (
-            <form onSubmit={handleSaveNotifications} className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Email Notifications
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Receive notifications via email
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="emailNotifications"
-                      checked={notificationSettings.emailNotifications}
-                      onChange={handleNotificationChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      SMS Notifications
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Receive notifications via SMS
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="smsNotifications"
-                      checked={notificationSettings.smsNotifications}
-                      onChange={handleNotificationChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Push Notifications
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Receive push notifications in browser
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="pushNotifications"
-                      checked={notificationSettings.pushNotifications}
-                      onChange={handleNotificationChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Weekly Reports
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Receive weekly summary reports
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="weeklyReports"
-                      checked={notificationSettings.weeklyReports}
-                      onChange={handleNotificationChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      Marketing Emails
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      Receive promotional and marketing emails
-                    </p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      name="marketingEmails"
-                      checked={notificationSettings.marketingEmails}
-                      onChange={handleNotificationChange}
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                  </label>
-                </div>
-              </div>
-
-              <div className="flex justify-end">
-                <button
-                  type="submit"
-                  className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2"
+                  <FaLock />
+                  <span>Security</span>
+                </Nav.Link>
+              </Nav.Item>
+              <Nav.Item>
+                <Nav.Link
+                  eventKey="preferences"
+                  className="d-flex align-items-center gap-2"
                 >
-                  <Save className="w-4 h-4" />
-                  <span>Save Changes</span>
-                </button>
-              </div>
-            </form>
-          )}
+                  <FaGlobe />
+                  <span>Preferences</span>
+                </Nav.Link>
+              </Nav.Item>
+            </Nav>
+          </Card.Header>
 
-          {activeTab === "security" && (
-            <div className="space-y-6">
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="flex">
-                  <div className="flex-shrink-0">
-                    <Lock className="h-5 w-5 text-yellow-400" />
+          <Card.Body>
+            <Tab.Content>
+              {/* Profile Tab */}
+              <Tab.Pane eventKey="profile">
+                <div className="d-flex align-items-center mb-4">
+                  <div
+                    className="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3"
+                    style={{ width: "80px", height: "80px" }}
+                  >
+                    <FaUser className="text-white fs-2" />
                   </div>
-                  <div className="ml-3">
-                    <h3 className="text-sm font-medium text-yellow-800">
+                  <div>
+                    <h4 className="mb-1">
+                      {profileData.firstName} {profileData.lastName}
+                    </h4>
+                    <p className="text-muted mb-0">
+                      {profileData.jobTitle} at {profileData.company}
+                    </p>
+                    <Badge bg="success" className="mt-1">
+                      Active Account
+                    </Badge>
+                  </div>
+                </div>
+
+                <Form onSubmit={handleSaveProfile}>
+                  <Row className="g-3 mb-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">
+                          First Name
+                        </Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="firstName"
+                          value={profileData.firstName}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Last Name</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="lastName"
+                          value={profileData.lastName}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Row className="g-3 mb-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">
+                          Email Address
+                        </Form.Label>
+                        <Form.Control
+                          type="email"
+                          name="email"
+                          value={profileData.email}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">
+                          Phone Number
+                        </Form.Label>
+                        <Form.Control
+                          type="tel"
+                          name="phone"
+                          value={profileData.phone}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Row className="g-3 mb-3">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Company</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="company"
+                          value={profileData.company}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Job Title</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="jobTitle"
+                          value={profileData.jobTitle}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-medium">Bio</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={3}
+                      name="bio"
+                      value={profileData.bio}
+                      onChange={handleProfileChange}
+                      placeholder="Tell us about yourself..."
+                    />
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label className="fw-medium">Address</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="address"
+                      value={profileData.address}
+                      onChange={handleProfileChange}
+                    />
+                  </Form.Group>
+
+                  <Row className="g-3 mb-4">
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">City</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="city"
+                          value={profileData.city}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">State</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="state"
+                          value={profileData.state}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">ZIP Code</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="zipCode"
+                          value={profileData.zipCode}
+                          onChange={handleProfileChange}
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <div className="d-flex justify-content-end">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className="d-flex align-items-center gap-2"
+                    >
+                      <FaSave />
+                      Save Changes
+                    </Button>
+                  </div>
+                </Form>
+              </Tab.Pane>
+
+              {/* Notifications Tab */}
+              <Tab.Pane eventKey="notifications">
+                <Form onSubmit={handleSaveNotifications}>
+                  <h5 className="mb-4">Notification Preferences</h5>
+                  <div className="mb-4">
+                    {Object.entries(notificationSettings).map(
+                      ([key, value]) => (
+                        <div
+                          key={key}
+                          className="d-flex justify-content-between align-items-center py-3 border-bottom"
+                        >
+                          <div>
+                            <h6 className="mb-1">
+                              {key
+                                .replace(/([A-Z])/g, " $1")
+                                .replace(/^./, (str) => str.toUpperCase())}
+                            </h6>
+                            <small className="text-muted">
+                              {key === "emailNotifications" &&
+                                "Receive notifications via email"}
+                              {key === "smsNotifications" &&
+                                "Receive notifications via SMS"}
+                              {key === "pushNotifications" &&
+                                "Receive push notifications in browser"}
+                              {key === "weeklyReports" &&
+                                "Receive weekly summary reports"}
+                              {key === "marketingEmails" &&
+                                "Receive promotional and marketing emails"}
+                              {key === "securityAlerts" &&
+                                "Receive security and login alerts"}
+                              {key === "projectUpdates" &&
+                                "Receive updates about your projects"}
+                            </small>
+                          </div>
+                          <Form.Check
+                            type="switch"
+                            name={key}
+                            checked={value}
+                            onChange={handleNotificationChange}
+                            size="lg"
+                          />
+                        </div>
+                      )
+                    )}
+                  </div>
+
+                  <Alert variant="info">
+                    <Alert.Heading className="h6">
+                      <FaBell className="me-2" />
+                      Notification Tips
+                    </Alert.Heading>
+                    <ul className="mb-0">
+                      <li>
+                        Security alerts cannot be disabled for account safety
+                      </li>
+                      <li>
+                        You can customize notification frequency in advanced
+                        settings
+                      </li>
+                      <li>Email notifications include unsubscribe links</li>
+                    </ul>
+                  </Alert>
+
+                  <div className="d-flex justify-content-end">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className="d-flex align-items-center gap-2"
+                    >
+                      <FaSave />
+                      Save Changes
+                    </Button>
+                  </div>
+                </Form>
+              </Tab.Pane>
+
+              {/* Security Tab */}
+              <Tab.Pane eventKey="security">
+                <Alert
+                  variant="warning"
+                  className="d-flex align-items-center mb-4"
+                >
+                  {/* <FaShield className="me-2" /> */}
+                  <div>
+                    <Alert.Heading className="h6 mb-1">
                       Security Settings
-                    </h3>
-                    <div className="mt-2 text-sm text-yellow-700">
-                      <p>
-                        Manage your password and security preferences. For
-                        enhanced security, we recommend enabling two-factor
-                        authentication.
-                      </p>
+                    </Alert.Heading>
+                    <p className="mb-0">
+                      Manage your password and security preferences. For
+                      enhanced security, we recommend enabling two-factor
+                      authentication.
+                    </p>
+                  </div>
+                </Alert>
+
+                <ListGroup variant="flush" className="mb-4">
+                  <ListGroup.Item
+                    action
+                    className="d-flex justify-content-between align-items-center"
+                    onClick={() => setShowPasswordModal(true)}
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaKey className="me-3 text-primary" />
+                      <div>
+                        <h6 className="mb-1">Change Password</h6>
+                        <small className="text-muted">
+                          Update your account password
+                        </small>
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </div>
+                    <span className="text-primary">→</span>
+                  </ListGroup.Item>
 
-              <div className="space-y-4">
-                <button className="w-full text-left p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Change Password
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Update your account password
-                      </p>
+                  <ListGroup.Item
+                    action
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <div className="d-flex align-items-center">
+                      {/* <FaShield className="me-3 text-success" /> */}
+                      <div>
+                        <h6 className="mb-1">Two-Factor Authentication</h6>
+                        <small className="text-muted">
+                          Add an extra layer of security to your account
+                        </small>
+                      </div>
                     </div>
-                    <div className="text-blue-600">→</div>
-                  </div>
-                </button>
+                    <Badge bg="success">Enabled</Badge>
+                  </ListGroup.Item>
 
-                <button className="w-full text-left p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Two-Factor Authentication
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        Add an extra layer of security to your account
-                      </p>
+                  <ListGroup.Item
+                    action
+                    className="d-flex justify-content-between align-items-center"
+                  >
+                    <div className="d-flex align-items-center">
+                      <FaHistory className="me-3 text-info" />
+                      <div>
+                        <h6 className="mb-1">Login History</h6>
+                        <small className="text-muted">
+                          View recent login activity
+                        </small>
+                      </div>
                     </div>
-                    <div className="text-blue-600">→</div>
-                  </div>
-                </button>
+                    <span className="text-primary">→</span>
+                  </ListGroup.Item>
+                </ListGroup>
 
-                <button className="w-full text-left p-4 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Login History
-                      </h3>
-                      <p className="text-sm text-gray-500">
-                        View recent login activity
-                      </p>
-                    </div>
-                    <div className="text-blue-600">→</div>
-                  </div>
-                </button>
-              </div>
-            </div>
-          )}
+                <Card className="bg-light">
+                  <Card.Header>
+                    <Card.Title className="h6 mb-0">
+                      Recent Login Activity
+                    </Card.Title>
+                  </Card.Header>
+                  <Card.Body>
+                    {loginHistory.map((login, index) => (
+                      <div
+                        key={index}
+                        className="d-flex justify-content-between align-items-center py-2 border-bottom"
+                      >
+                        <div>
+                          <div className="fw-medium">
+                            {login.date} at {login.time}
+                          </div>
+                          <small className="text-muted">
+                            {login.device} • {login.location}
+                          </small>
+                        </div>
+                        <Badge bg="success">Success</Badge>
+                      </div>
+                    ))}
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
 
-          {activeTab === "preferences" && (
-            <div className="space-y-6">
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">
-                  General Preferences
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <label
-                      htmlFor="language"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Language
-                    </label>
-                    <select
-                      id="language"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="en">English</option>
-                      <option value="es">Spanish</option>
-                      <option value="fr">French</option>
-                      <option value="de">German</option>
-                    </select>
-                  </div>
+              {/* Preferences Tab */}
+              <Tab.Pane eventKey="preferences">
+                <Form onSubmit={handleSavePreferences}>
+                  <h5 className="mb-4">General Preferences</h5>
+                  <Row className="g-3 mb-4">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Language</Form.Label>
+                        <Form.Select
+                          name="language"
+                          value={preferences.language}
+                          onChange={handlePreferencesChange}
+                        >
+                          <option value="en">English</option>
+                          <option value="es">Spanish</option>
+                          <option value="fr">French</option>
+                          <option value="de">German</option>
+                          <option value="it">Italian</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
 
-                  <div>
-                    <label
-                      htmlFor="timezone"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Timezone
-                    </label>
-                    <select
-                      id="timezone"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="EST">Eastern Time (EST)</option>
-                      <option value="CST">Central Time (CST)</option>
-                      <option value="MST">Mountain Time (MST)</option>
-                      <option value="PST">Pacific Time (PST)</option>
-                    </select>
-                  </div>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Timezone</Form.Label>
+                        <Form.Select
+                          name="timezone"
+                          value={preferences.timezone}
+                          onChange={handlePreferencesChange}
+                        >
+                          <option value="EST">Eastern Time (EST)</option>
+                          <option value="CST">Central Time (CST)</option>
+                          <option value="MST">Mountain Time (MST)</option>
+                          <option value="PST">Pacific Time (PST)</option>
+                          <option value="UTC">UTC</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
 
-                  <div>
-                    <label
-                      htmlFor="dateFormat"
-                      className="block text-sm font-medium text-gray-700 mb-2"
-                    >
-                      Date Format
-                    </label>
-                    <select
-                      id="dateFormat"
-                      className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                      <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                      <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                    </select>
-                  </div>
-                </div>
-              </div>
+                  <Row className="g-3 mb-4">
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">
+                          Date Format
+                        </Form.Label>
+                        <Form.Select
+                          name="dateFormat"
+                          value={preferences.dateFormat}
+                          onChange={handlePreferencesChange}
+                        >
+                          <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                          <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                          <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
 
-              <div className="flex justify-end">
-                <button className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center space-x-2">
-                  <Save className="w-4 h-4" />
-                  <span>Save Preferences</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Theme</Form.Label>
+                        <Form.Select
+                          name="theme"
+                          value={preferences.theme}
+                          onChange={handlePreferencesChange}
+                        >
+                          <option value="light">Light</option>
+                          <option value="dark">Dark</option>
+                          <option value="auto">Auto</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="fw-medium">Currency</Form.Label>
+                        <Form.Select
+                          name="currency"
+                          value={preferences.currency}
+                          onChange={handlePreferencesChange}
+                        >
+                          <option value="USD">USD ($)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="GBP">GBP (£)</option>
+                          <option value="CAD">CAD ($)</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <div className="d-flex justify-content-end">
+                    <Button
+                      variant="primary"
+                      type="submit"
+                      className="d-flex align-items-center gap-2"
+                    >
+                      <FaSave />
+                      Save Preferences
+                    </Button>
+                  </div>
+                </Form>
+              </Tab.Pane>
+            </Tab.Content>
+          </Card.Body>
+        </Tab.Container>
+      </Card>
+
+      {/* Password Change Modal */}
+      <Modal
+        show={showPasswordModal}
+        onHide={() => setShowPasswordModal(false)}
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Change Password</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3">
+              <Form.Label>Current Password</Form.Label>
+              <Form.Control
+                type="password"
+                placeholder="Enter current password"
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>New Password</Form.Label>
+              <Form.Control type="password" placeholder="Enter new password" />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Confirm New Password</Form.Label>
+              <Form.Control
+                type="password"
+                placeholder="Confirm new password"
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button
+            variant="secondary"
+            onClick={() => setShowPasswordModal(false)}
+          >
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={() => setShowPasswordModal(false)}>
+            Update Password
+          </Button>
+        </Modal.Footer>
+      </Modal>
+    </Container>
   );
-}
+};
+
+export default Settings;

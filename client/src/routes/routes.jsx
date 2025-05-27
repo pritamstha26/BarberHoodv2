@@ -9,6 +9,7 @@ import { Navigate } from "react-router-dom";
 import BarberList from "../components/adminComponents/BarberList";
 import ServiceList from "../components/adminComponents/Services";
 import ClientPortal from "../components/client";
+import BarberDashboard from "../components/barber";
 
 //
 const routes = [
@@ -16,6 +17,7 @@ const routes = [
   { path: "/login", element: <Login /> },
   { path: "/sign-up", element: <SignUp /> },
   { path: "/client", element: <ClientPortal /> },
+  { path: "/barber", element: <BarberDashboard /> },
 
   { path: "/*", element: <NotFound isAuthenticated="true" /> },
 
