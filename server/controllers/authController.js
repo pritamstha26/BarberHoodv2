@@ -1,161 +1,60 @@
-import { query } from "../config/db.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import { UsersModel } from "../models/model.js";
 
-export const registerClient = async (req, res) => {
+export const register = async (req, res) => {
   try {
-    const { email, password, number, address } = req.body;
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    const result = await query(
-      `INSERT INTO clients ( email, password, number,address) 
-       VALUES ($1, $2, $3, $4) RETURNING client_id, email, number,address`,
-      [email, hashedPassword, number, address]
-    );
-
-    const token = jwt.sign(
-      { id: result.rows[0].client_id },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    res.status(201).json({
-      status: "success",
-      token,
-      data: result.rows[0],
+    const password = req.body["password"];
+    const hashedPassword = await bcrypt.hash(password, 10);
+    req.body.password = hashedPassword;
+    const user = await UsersModel.create(req.body);
+    const token = createToken(user);
+    return res.status(201).json({
+      message: "User registered successfully",
+      access_token: token,
     });
-  } catch (err) {
-    console.error(err);
-    res.status(400).json({ message: "Registration failed" });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
 export const login = async (req, res) => {
   try {
-    const { email, password, userType } = req.body;
+    const { email, password, role } = req.body;
+    const user = await UsersModel.findOne({ where: { email, role } });
 
-    // Validate input
-    if (!email || !password || !userType) {
-      return res.status(400).json({ message: "All fields are required" });
+    if (!user) {
+      return res.status(404).json({ message: "Invalid credentials" });
     }
 
-    let tableName;
-    switch (userType) {
-      case "admin":
-        tableName = "admins";
-        break;
-      case "barber":
-        tableName = "barbers";
-        break;
-      case "client":
-        tableName = "clients";
-        break;
-      default:
-        return res.status(400).json({ message: "Invalid user type" });
-    }
-
-    // Query the appropriate table
-    const result = await query(`SELECT * FROM ${tableName} WHERE email = $1`, [
-      email,
-    ]);
-
-    if (
-      !result.rows[0] ||
-      !(await bcrypt.compare(password, result.rows[0].password))
-    ) {
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
       return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const user = result.rows[0];
-    const token = jwt.sign(
-      {
-        id: user.id || user.client_id || user.barber_id || user.admin_id,
-        role: userType,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN }
-    );
-
-    res.status(200).json({
-      status: "success",
-      token,
-      userType,
-      data: {
-        id: user.id || user.client_id || user.barber_id || user.admin_id,
-        name: user.name,
-        email: user.email,
-      },
+    const token = createToken(user);
+    return res.status(200).json({
+      message: "Login successful",
+      access_token: token,
     });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: "Login failed" });
+  } catch (error) {
+    console.error("Error during login:", error);
+    return res.status(500).json({ message: "Internal server error" });
   }
 };
 
-export const loginClient = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    if (!email || !password) {
-      return res.status(400).json({
-        message: "All fields ( email, password) are required",
-      });
-    }
-    // 1. Find client by email
-    const result = await query("SELECT * FROM clients WHERE email = $1", [
-      email,
-    ]);
-
-    // 2. Check if clients exists
-    if (result.rows.length === 0) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid credentials",
-      });
-    }
-
-    const client = result.rows[0];
-
-    // 3. Verify password
-    const isMatch = await bcrypt.compare(password, client.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        status: "error",
-        message: "Invalid credentials",
-      });
-    }
-
-    // 4. Generate JWT token
-    const token = jwt.sign(
-      {
-        id: client.client_id,
-        email: client.email,
-        role: "client",
-        // status: c.status,
-      },
-      process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_EXPIRES_IN || "1d" }
-    );
-
-    // 5. Prepare response data (exclude password)
-    const clientData = {
-      id: client.client_id,
-      name: client.name,
-      email: client.email,
-      number: client.number,
-      // status: barber.status,
-    };
-
-    // 6. Send success response
-    res.status(200).json({
-      status: "success",
-      token,
-      client: clientData,
-    });
-  } catch (err) {
-    console.error("Login error:", err);
-    res.status(500).json({
-      status: "error",
-      message: "Internal server error",
-    });
-  }
+export const createToken = (user) => {
+  return jwt.sign(
+    {
+      id: user.id,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      phone_number: user.phone_number,
+      email: user.email,
+      role: user.role,
+    },
+    process.env.JWT_SECRET,
+    { expiresIn: "1h" }
+  );
 };

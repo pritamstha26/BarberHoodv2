@@ -1,16 +1,7 @@
-import { Router } from "express";
-import {
-  addService,
-  deleteService,
-  getAllServices,
-  updateService,
-} from "../controllers/serviceController.js";
-
-const router = Router();
-
-router.get("/", getAllServices);
-router.post("/", addService);
-router.delete("/services/:id", deleteService);
-router.put("/services/:id", updateService);
-
+import express from "express";
+import { getServices, addService } from "../controllers/servicesController.js";
+const router = express.Router();
+// Route for user registration
+router.post("/", addService); // Route to add a new service
+router.get("/", getServices); // Route to get all services
 export default router;
