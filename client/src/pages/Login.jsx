@@ -11,8 +11,9 @@ import {
 import { useNavigate } from "react-router-dom";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Logo from "../components/Logo";
-import api from "../apis/apiInstance";
+
 import { isAxiosError } from "axios";
+import api from "../apis/api";
 //
 export default function LoginPage() {
   const [validated, setValidated] = useState(false);
@@ -45,10 +46,13 @@ export default function LoginPage() {
     }
 
     setValidated(true);
+    formData.role = selectedRole; // Add role to formData
     try {
-      const response = await api.post(`/login/${selectedRole}`, formData);
-      alert("successful");
-      navigate(`/${selectedRole}/services`);
+      const response = await api.post(`/auth/login`, formData);
+      if (response.status === 200) {
+        localStorage.setItem("access_token", response.data.access_token);
+        navigate(`/${selectedRole}`);
+      }
     } catch (error) {
       if (isAxiosError(error)) {
         alert(error.response.data.message);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -27,6 +27,7 @@ import {
   FaEye,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
+import api from "../../apis/api";
 
 // Mock data
 const mockAppointments = [
@@ -90,9 +91,10 @@ const serviceTypes = [
 ];
 
 export default function BarberDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard");
-  const [appointments, setAppointments] = useState(mockAppointments);
-  const [requests, setRequests] = useState(mockRequests);
+  const [activeTab, setActiveTab] = useState("requests");
+
+  const [appointments, setAppointments] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [showRequestModal, setShowRequestModal] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [showAlert, setShowAlert] = useState(false);
@@ -137,130 +139,159 @@ export default function BarberDashboard() {
     setShowRequestModal(true);
   };
 
-  const renderDashboard = () => (
-    <div>
-      <Row className="mb-4">
-        <Col md={3}>
-          <Card className="text-center bg-primary text-white">
-            <Card.Body>
-              <h3>{appointments.length}</h3>
-              <p>Total Appointments</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center bg-success text-white">
-            <Card.Body>
-              <h3>
-                {appointments.filter((a) => a.status === "confirmed").length}
-              </h3>
-              <p>Confirmed</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center bg-warning text-white">
-            <Card.Body>
-              <h3>{requests.length}</h3>
-              <p>Pending Requests</p>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3}>
-          <Card className="text-center bg-info text-white">
-            <Card.Body>
-              <h3>${appointments.length * 22}</h3>
-              <p>Est. Revenue</p>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+  const getStatusVariant = (status) => {
+    switch (status) {
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "primary";
+      case "pending":
+        return "warning";
+      case "cancelled":
+        return "danger";
+      default:
+        return "secondary";
+    }
+  };
+  useEffect(() => {
+    fetchAllServiceRequests();
+  }, []);
+  const fetchAllServiceRequests = async () => {
+    // Simulate fetching data from an API
+    try {
+      const response = await api.get("/services/all");
+      if (response.status === 200) {
+        setRequests(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching service requests:", error);
+    }
+  };
 
-      <Card>
-        <Card.Header>
-          <h5>Today's Appointments</h5>
-        </Card.Header>
-        <Card.Body>
-          <Table responsive striped>
-            <thead>
-              <tr>
-                <th>Client</th>
-                <th>Service</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Phone</th>
-              </tr>
-            </thead>
-            <tbody>
-              {appointments.slice(0, 5).map((appointment) => (
-                <tr key={appointment.id}>
-                  <td>{appointment.clientName}</td>
-                  <td>{appointment.service}</td>
-                  <td>{appointment.time}</td>
-                  <td>
-                    <Badge
-                      bg={
-                        appointment.status === "confirmed"
-                          ? "success"
-                          : "warning"
-                      }
-                    >
-                      {appointment.status}
-                    </Badge>
-                  </td>
-                  <td>{appointment.phone}</td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </Card.Body>
-      </Card>
-    </div>
-  );
+  // const renderDashboard = () => (
+  //   <div>
+  //     <Row className="mb-4">
+  //       <Col md={3}>
+  //         <Card className="text-center bg-primary text-white">
+  //           <Card.Body>
+  //             <h3>{appointments.length}</h3>
+  //             <p>Total Appointments</p>
+  //           </Card.Body>
+  //         </Card>
+  //       </Col>
+  //       <Col md={3}>
+  //         <Card className="text-center bg-success text-white">
+  //           <Card.Body>
+  //             <h3>
+  //               {appointments.filter((a) => a.status === "confirmed").length}
+  //             </h3>
+  //             <p>Confirmed</p>
+  //           </Card.Body>
+  //         </Card>
+  //       </Col>
+  //       <Col md={3}>
+  //         <Card className="text-center bg-warning text-white">
+  //           <Card.Body>
+  //             <h3>{requests.length}</h3>
+  //             <p>Pending Requests</p>
+  //           </Card.Body>
+  //         </Card>
+  //       </Col>
+  //       <Col md={3}>
+  //         <Card className="text-center bg-info text-white">
+  //           <Card.Body>
+  //             <h3>${appointments.length * 22}</h3>
+  //             <p>Est. Revenue</p>
+  //           </Card.Body>
+  //         </Card>
+  //       </Col>
+  //     </Row>
 
-  const renderAppointments = () => (
-    <Card>
-      <Card.Header>
-        <h5>All Appointments</h5>
-      </Card.Header>
-      <Card.Body>
-        <Table responsive striped hover>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Client Name</th>
-              <th>Service</th>
-              <th>Date</th>
-              <th>Time</th>
-              <th>Status</th>
-              <th>Phone</th>
-            </tr>
-          </thead>
-          <tbody>
-            {appointments.map((appointment) => (
-              <tr key={appointment.id}>
-                <td>{appointment.id}</td>
-                <td>{appointment.clientName}</td>
-                <td>{appointment.service}</td>
-                <td>{appointment.date}</td>
-                <td>{appointment.time}</td>
-                <td>
-                  <Badge
-                    bg={
-                      appointment.status === "confirmed" ? "success" : "warning"
-                    }
-                  >
-                    {appointment.status}
-                  </Badge>
-                </td>
-                <td>{appointment.phone}</td>
-              </tr>
-            ))}
-          </tbody>
-        </Table>
-      </Card.Body>
-    </Card>
-  );
+  //     <Card>
+  //       <Card.Header>
+  //         <h5>Today's Appointments</h5>
+  //       </Card.Header>
+  //       <Card.Body>
+  //         <Table responsive striped>
+  //           <thead>
+  //             <tr>
+  //               <th>Client</th>
+  //               <th>Service</th>
+  //               <th>Time</th>
+  //               <th>Status</th>
+  //               <th>Phone</th>
+  //             </tr>
+  //           </thead>
+  //           <tbody>
+  //             {appointments.slice(0, 5).map((appointment) => (
+  //               <tr key={appointment.id}>
+  //                 <td>{appointment.clientName}</td>
+  //                 <td>{appointment.service}</td>
+  //                 <td>{appointment.time}</td>
+  //                 <td>
+  //                   <Badge
+  //                     bg={
+  //                       appointment.status === "confirmed"
+  //                         ? "success"
+  //                         : "warning"
+  //                     }
+  //                   >
+  //                     {appointment.status}
+  //                   </Badge>
+  //                 </td>
+  //                 <td>{appointment.phone}</td>
+  //               </tr>
+  //             ))}
+  //           </tbody>
+  //         </Table>
+  //       </Card.Body>
+  //     </Card>
+  //   </div>
+  // );
+
+  // const renderAppointments = () => (
+  //   <Card>
+  //     <Card.Header>
+  //       <h5>All Appointments</h5>
+  //     </Card.Header>
+  //     <Card.Body>
+  //       <Table responsive striped hover>
+  //         <thead>
+  //           <tr>
+  //             <th>ID</th>
+  //             <th>Client Name</th>
+  //             <th>Service</th>
+  //             <th>Date</th>
+  //             <th>Time</th>
+  //             <th>Status</th>
+  //             <th>Phone</th>
+  //           </tr>
+  //         </thead>
+  //         <tbody>
+  //           {appointments.map((appointment) => (
+  //             <tr key={appointment.id}>
+  //               <td>{appointment.id}</td>
+  //               <td>{appointment.clientName}</td>
+  //               <td>{appointment.service}</td>
+  //               <td>{appointment.date}</td>
+  //               <td>{appointment.time}</td>
+  //               <td>
+  //                 <Badge
+  //                   bg={
+  //                     appointment.status === "confirmed" ? "success" : "warning"
+  //                   }
+  //                 >
+  //                   {appointment.status}
+  //                 </Badge>
+  //               </td>
+  //               <td>{appointment.phone}</td>
+  //             </tr>
+  //           ))}
+  //         </tbody>
+  //       </Table>
+  //     </Card.Body>
+  //   </Card>
+  // );
 
   const renderRequests = () => (
     <Card>
@@ -272,21 +303,28 @@ export default function BarberDashboard() {
           <thead>
             <tr>
               <th>Client Name</th>
-              <th>Service</th>
-              <th>Requested Date</th>
-              <th>Requested Time</th>
-              <th>Phone</th>
-              <th>Actions</th>
+              <th>Status</th>
+              <th>Service Type</th>
+              <th>prefer_contact_method</th>
+              <th>Deadline</th>
+              <th>Price</th>
             </tr>
           </thead>
           <tbody>
             {requests.map((request) => (
               <tr key={request.id}>
-                <td>{request.clientName}</td>
-                <td>{request.service}</td>
-                <td>{request.requestedDate}</td>
-                <td>{request.requestedTime}</td>
-                <td>{request.phone}</td>
+                <td>
+                  {request.user.first_name} {request.user.last_name}
+                </td>
+                <td>
+                  <Badge bg={getStatusVariant(request.status)}>
+                    {request.status}
+                  </Badge>
+                </td>
+                <td>{request.service_type}</td>
+                <td>{request.prefer_contact_method}</td>
+                <td>{request.deadline}</td>
+                <td>{request.price}</td>
                 <td>
                   <Button
                     variant="outline-info"
@@ -325,84 +363,84 @@ export default function BarberDashboard() {
     </Card>
   );
 
-  const renderServices = () => (
-    <Card>
-      <Card.Header>
-        <h5>Service Types</h5>
-      </Card.Header>
-      <Card.Body>
-        <Row>
-          {serviceTypes.map((service) => (
-            <Col md={4} className="mb-3" key={service.id}>
-              <Card className="h-100">
-                <Card.Body className="text-center">
-                  <FaCut className="mb-2" size={30} />
-                  <Card.Title>{service.name}</Card.Title>
-                  <Card.Text>
-                    <strong>Price:</strong> {service.price}
-                    <br />
-                    <strong>Duration:</strong> {service.duration}
-                  </Card.Text>
-                  <Button variant="outline-primary" size="sm">
-                    Edit Service
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      </Card.Body>
-    </Card>
-  );
+  // const renderServices = () => (
+  //   <Card>
+  //     <Card.Header>
+  //       <h5>Service Types</h5>
+  //     </Card.Header>
+  //     <Card.Body>
+  //       <Row>
+  //         {serviceTypes.map((service) => (
+  //           <Col md={4} className="mb-3" key={service.id}>
+  //             <Card className="h-100">
+  //               <Card.Body className="text-center">
+  //                 <FaCut className="mb-2" size={30} />
+  //                 <Card.Title>{service.name}</Card.Title>
+  //                 <Card.Text>
+  //                   <strong>Price:</strong> {service.price}
+  //                   <br />
+  //                   <strong>Duration:</strong> {service.duration}
+  //                 </Card.Text>
+  //                 <Button variant="outline-primary" size="sm">
+  //                   Edit Service
+  //                 </Button>
+  //               </Card.Body>
+  //             </Card>
+  //           </Col>
+  //         ))}
+  //       </Row>
+  //     </Card.Body>
+  //   </Card>
+  // );
 
-  const renderSettings = () => (
-    <Card>
-      <Card.Header>
-        <h5>Settings</h5>
-      </Card.Header>
-      <Card.Body>
-        <Form>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Barber Shop Name</Form.Label>
-                <Form.Control type="text" defaultValue="Mike's Barber Shop" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Contact Phone</Form.Label>
-                <Form.Control type="tel" defaultValue="+1234567890" />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Row>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Opening Time</Form.Label>
-                <Form.Control type="time" defaultValue="09:00" />
-              </Form.Group>
-            </Col>
-            <Col md={6}>
-              <Form.Group className="mb-3">
-                <Form.Label>Closing Time</Form.Label>
-                <Form.Control type="time" defaultValue="18:00" />
-              </Form.Group>
-            </Col>
-          </Row>
-          <Form.Group className="mb-3">
-            <Form.Label>Address</Form.Label>
-            <Form.Control
-              as="textarea"
-              rows={3}
-              defaultValue="123 Main Street, City, State 12345"
-            />
-          </Form.Group>
-          <Button variant="primary">Save Settings</Button>
-        </Form>
-      </Card.Body>
-    </Card>
-  );
+  // const renderSettings = () => (
+  //   <Card>
+  //     <Card.Header>
+  //       <h5>Settings</h5>
+  //     </Card.Header>
+  //     <Card.Body>
+  //       <Form>
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group className="mb-3">
+  //               <Form.Label>Barber Shop Name</Form.Label>
+  //               <Form.Control type="text" defaultValue="Mike's Barber Shop" />
+  //             </Form.Group>
+  //           </Col>
+  //           <Col md={6}>
+  //             <Form.Group className="mb-3">
+  //               <Form.Label>Contact Phone</Form.Label>
+  //               <Form.Control type="tel" defaultValue="+1234567890" />
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+  //         <Row>
+  //           <Col md={6}>
+  //             <Form.Group className="mb-3">
+  //               <Form.Label>Opening Time</Form.Label>
+  //               <Form.Control type="time" defaultValue="09:00" />
+  //             </Form.Group>
+  //           </Col>
+  //           <Col md={6}>
+  //             <Form.Group className="mb-3">
+  //               <Form.Label>Closing Time</Form.Label>
+  //               <Form.Control type="time" defaultValue="18:00" />
+  //             </Form.Group>
+  //           </Col>
+  //         </Row>
+  //         <Form.Group className="mb-3">
+  //           <Form.Label>Address</Form.Label>
+  //           <Form.Control
+  //             as="textarea"
+  //             rows={3}
+  //             defaultValue="123 Main Street, City, State 12345"
+  //           />
+  //         </Form.Group>
+  //         <Button variant="primary">Save Settings</Button>
+  //       </Form>
+  //     </Card.Body>
+  //   </Card>
+  // );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -541,22 +579,26 @@ export default function BarberDashboard() {
           {selectedRequest && (
             <div>
               <p>
-                <strong>Client:</strong> {selectedRequest.clientName}
+                <strong>Client:</strong> {selectedRequest.user.first_name}{" "}
+                {selectedRequest.user.last_name}
               </p>
               <p>
-                <strong>Service:</strong> {selectedRequest.service}
+                <strong>Service:</strong> {selectedRequest.service_type}
               </p>
               <p>
-                <strong>Requested Date:</strong> {selectedRequest.requestedDate}
+                <strong>Status:</strong>{" "}
+                <Badge bg={getStatusVariant(selectedRequest.status)}>
+                  {selectedRequest.status}
+                </Badge>
               </p>
               <p>
-                <strong>Requested Time:</strong> {selectedRequest.requestedTime}
+                <strong>Deadline:</strong> {selectedRequest.deadline}
               </p>
               <p>
-                <strong>Phone:</strong> {selectedRequest.phone}
+                <strong>Email:</strong> {selectedRequest.user.email}
               </p>
               <p>
-                <strong>Message:</strong> {selectedRequest.message}
+                <strong>Description:</strong> {selectedRequest.description}
               </p>
             </div>
           )}

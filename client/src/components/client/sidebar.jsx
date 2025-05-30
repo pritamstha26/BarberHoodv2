@@ -1,8 +1,10 @@
 import React from "react";
 import { Nav, Button } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { FaHome, FaCog, FaSignOutAlt, FaFileAlt, FaUser } from "react-icons/fa";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
+  const navigate = useNavigate();
   const menuItems = [
     { id: "dashboard", label: "Dashboard", icon: FaHome },
     { id: "request-service", label: "Request Service", icon: FaFileAlt },
@@ -10,7 +12,8 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   ];
 
   const handleLogout = () => {
-    alert("Logging out...");
+    localStorage.removeItem("access_token");
+    navigate("/login");
   };
 
   const sidebarStyle = {

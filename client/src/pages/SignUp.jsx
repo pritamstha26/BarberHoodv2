@@ -11,7 +11,7 @@ import {
 } from "react-bootstrap";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Logo from "../components/Logo";
-import api from "../apis/apiInstance";
+import api from "../apis/api";
 import { useNavigate } from "react-router-dom";
 
 export default function SignupPage() {
@@ -19,8 +19,9 @@ export default function SignupPage() {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    number: "",
-    address: "", // CHANGE 1: Kept for clients
+    role: "",
+    first_name: "",
+    last_name: "",
   });
   const [selectedRole, setSelectedRole] = useState("client");
   const [error, setError] = useState(null);
@@ -54,8 +55,6 @@ export default function SignupPage() {
     // CHANGE 4: Strict input validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const trimmedEmail = formData.email.trim();
-    const trimmedNumber = formData.number.trim();
-    const trimmedAddress = formData.address.trim();
 
     if (!emailRegex.test(trimmedEmail)) {
       setError("Please enter a valid email address.");
@@ -67,78 +66,30 @@ export default function SignupPage() {
       setValidated(true);
       return;
     }
-    if (!/^[0-9]{10,15}$/.test(trimmedNumber)) {
-      setError("Phone number must be 10-15 digits.");
-      setValidated(true);
-      return;
-    }
-    if (selectedRole === "client" && !trimmedAddress) {
-      setError("Address is required for clients.");
-      setValidated(true);
-      return;
-    }
 
     setValidated(true);
     setError(null);
+    formData.role = selectedRole;
+    registerUser(formData);
+  };
 
+  const registerUser = async (data) => {
     try {
-      // CHANGE 5: Role-specific payload
-      const payload = {
-        email: trimmedEmail,
-        password: formData.password,
-        number: trimmedNumber,
-        ...(selectedRole === "client"
-          ? { address: trimmedAddress }
-          : { status: "free" }),
-      };
-      const endpoint =
-        selectedRole === "barber" ? "/register/barber" : "/register/client";
-
-      // CHANGE 6: Detailed payload logging
-      console.log(
-        `Sending payload to ${endpoint}:`,
-        JSON.stringify(payload, null, 2)
-      );
-
-      // CHANGE 7: Send request
-      const response = await api.post(endpoint, payload);
-      console.log("Registration successful:", response.data);
-
-      // CHANGE 8: Store token
-      localStorage.setItem("token", response.data.token);
-
-      // CHANGE 9: Navigate to login
-      navigate("/login");
-    } catch (err) {
-      // CHANGE 10: Detailed error handling
-      console.error("Full error:", JSON.stringify(err, null, 2));
-      let errorMessage = "Registration failed. Please try again.";
-      if (err.response) {
-        console.log("Response data:", err.response.data);
-        if (err.response.status === 400) {
-          if (err.response.data.message.includes("All fields")) {
-            errorMessage = `All fields (${
-              selectedRole === "barber"
-                ? "email, password, number"
-                : "email, password, number, address"
-            }) are required.`;
-          } else if (err.response.data.message.includes("Email already")) {
-            errorMessage = "This email is already registered.";
-          } else if (err.response.data.message.includes("Invalid")) {
-            errorMessage = err.response.data.message;
-          } else {
-            errorMessage = "Registration failed due to invalid data.";
-          }
-        } else if (err.response.status === 404) {
-          errorMessage = `Endpoint ${endpoint} not found. Check server configuration.`;
-        } else if (err.response.status === 500) {
-          errorMessage = "Server error. Please try again later.";
-        }
-      } else if (err.code === "ERR_NETWORK") {
-        errorMessage =
-          "Unable to connect to the server. Check if the server is running.";
+      const response = await api.post("/auth/register", data);
+      if (response.status === 201) {
+        // CHANGE 5: Redirect on successful signup
+        localStorage.setItem("access_token", response.data.access_token);
+        navigate("/login");
       }
-      setError(errorMessage);
+    } catch (err) {
+      // CHANGE 6: Handle API errors
+      if (err.response && err.response.data) {
+        setError(
+          err.response.data.message || "An error occurred. Please try again."
+        );
+      } else {
+        setError("Network error. Please check your connection.");
+      }
     }
   };
 
@@ -186,6 +137,34 @@ export default function SignupPage() {
               </div>
 
               <Form noValidate validated={validated} onSubmit={handleSubmit}>
+                <Form.Group className="mb-3" controlId="firstName">
+                  <Form.Label>First name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="first_name"
+                    placeholder="Enter your first name"
+                    value={formData.first_name}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    Please provide a first name.
+                  </Form.Control.Feedback>
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="lastName">
+                  <Form.Label>Last name</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="last_name"
+                    placeholder="Enter your last name"
+                    value={formData.last_name}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    Please provide a valid last name.
+                  </Form.Control.Feedback>
+                </Form.Group>
                 <Form.Group className="mb-3" controlId="email">
                   <Form.Label>Email address</Form.Label>
                   <Form.Control
@@ -216,40 +195,6 @@ export default function SignupPage() {
                     Password must be at least 8 characters.
                   </Form.Control.Feedback>
                 </Form.Group>
-
-                <Form.Group className="mb-3" controlId="number">
-                  <Form.Label>Phone Number</Form.Label>
-                  <Form.Control
-                    type="tel" // CHANGE 12: Use tel for phone input
-                    name="number"
-                    placeholder="Enter your phone number"
-                    value={formData.number}
-                    onChange={handleChange}
-                    required
-                    pattern="[0-9]{10,15}"
-                  />
-                  <Form.Control.Feedback type="invalid">
-                    Please provide a valid phone number (10-15 digits).
-                  </Form.Control.Feedback>
-                </Form.Group>
-
-                {selectedRole === "client" && (
-                  <Form.Group className="mb-4" controlId="address">
-                    <Form.Label>Address</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      name="address"
-                      placeholder="Enter your address"
-                      value={formData.address}
-                      onChange={handleChange}
-                      required
-                      style={{ height: "100px" }}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      Please provide your address.
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                )}
 
                 <Button
                   variant="primary"

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Card, Table, Badge } from "react-bootstrap";
 import {
   FaCalendarAlt,
@@ -7,8 +7,10 @@ import {
   FaTimesCircle,
   FaExclamationCircle,
 } from "react-icons/fa";
+import api from "../../apis/api";
 
 const Dashboard = () => {
+  const [allServiceRequests, setAllServiceRequests] = useState([]);
   const [requests] = useState([
     {
       id: "REQ-001",
@@ -74,27 +76,14 @@ const Dashboard = () => {
 
   const getStatusVariant = (status) => {
     switch (status) {
-      case "Completed":
+      case "completed":
         return "success";
-      case "In Progress":
+      case "in_progress":
         return "primary";
-      case "Pending":
+      case "pending":
         return "warning";
-      case "Cancelled":
+      case "cancelled":
         return "danger";
-      default:
-        return "secondary";
-    }
-  };
-
-  const getPriorityVariant = (priority) => {
-    switch (priority) {
-      case "High":
-        return "danger";
-      case "Medium":
-        return "warning";
-      case "Low":
-        return "success";
       default:
         return "secondary";
     }
@@ -105,6 +94,21 @@ const Dashboard = () => {
     completed: requests.filter((r) => r.status === "Completed").length,
     inProgress: requests.filter((r) => r.status === "In Progress").length,
     pending: requests.filter((r) => r.status === "Pending").length,
+  };
+
+  useEffect(() => {
+    fetchServiceRequests();
+  }, []);
+
+  const fetchServiceRequests = async () => {
+    try {
+      const response = await api.get("/services");
+      if (response.status === 200) {
+        setAllServiceRequests(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching service requests:", error);
+    }
   };
 
   return (
@@ -209,28 +213,21 @@ const Dashboard = () => {
             <thead className="table-light">
               <tr>
                 <th className="px-4 py-3">Request ID</th>
-                <th className="px-4 py-3">Service</th>
                 <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Priority</th>
-                <th className="px-4 py-3">Date Requested</th>
-                <th className="px-4 py-3">Est. Completion</th>
+                <th className="px-4 py-3">Title</th>
+                <th className="px-4 py-3">Service Type</th>
+                <th className="px-4 py-3">Price</th>
+                <th className="px-4 py-3">Deadline </th>
+                <th className="px-4 py-3">Contact Method</th>
               </tr>
             </thead>
             <tbody>
-              {requests.map((request) => (
+              {allServiceRequests.map((request) => (
                 <tr key={request.id}>
                   <td className="px-4 py-3">
                     <div className="d-flex align-items-center">
-                      {getStatusIcon(request.status)}
+                      {/* {getStatusIcon(request.status)} */}
                       <span className="fw-medium">{request.id}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="fw-medium">{request.service}</div>
-                      <small className="text-muted">
-                        {request.description}
-                      </small>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -239,15 +236,21 @@ const Dashboard = () => {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">
-                    <Badge
-                      bg={getPriorityVariant(request.priority)}
-                      className="text-white"
-                    >
-                      {request.priority}
+                    <div>
+                      <div className="fw-medium">{request.title}</div>
+                      <small className="text-muted">
+                        {request.description}
+                      </small>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <Badge bg={getStatusVariant("")}>
+                      {request.service_type}
                     </Badge>
                   </td>
-                  <td className="px-4 py-3">{request.dateRequested}</td>
-                  <td className="px-4 py-3">{request.estimatedCompletion}</td>
+                  <td className="px-4 py-3">{request.price}</td>
+                  <td className="px-4 py-3">{request.deadline}</td>
+                  <td className="px-4 py-3">{request.prefer_contact_method}</td>
                 </tr>
               ))}
             </tbody>
