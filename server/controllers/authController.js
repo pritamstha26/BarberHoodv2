@@ -7,6 +7,17 @@ export const register = async (req, res) => {
     const password = req.body["password"];
     const hashedPassword = await bcrypt.hash(password, 10);
     req.body.password = hashedPassword;
+
+    const found = await UsersModel.findOne({
+      where: { email: req.body["email"] },
+    });
+
+    if (found) {
+      return res
+        .status(400)
+        .json({ exists: true, message: "Email already registered" });
+    }
+
     const user = await UsersModel.create(req.body);
     const token = createToken(user);
     return res.status(201).json({
@@ -25,7 +36,7 @@ export const login = async (req, res) => {
     const user = await UsersModel.findOne({ where: { email, role } });
 
     if (!user) {
-      return res.status(404).json({ message: "Invalid credentials" });
+      return res.status(404).json({ message: "Invalid user" });
     }
 
     const isPasswordValid = await bcrypt.compare(password, user.password);

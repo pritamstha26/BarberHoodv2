@@ -38,12 +38,19 @@ const ServiceModel = sequelize.define(
         key: "id",
       },
     },
+    status: {
+      type: DataTypes.ENUM("completed", "pending", "cancelled", "in_progress"),
+      defaultValue: "pending",
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt fields
   }
 );
-
+ServiceModel.belongsTo(UsersModel, {
+  foreignKey: "user_id",
+  as: "user", // required if you use 'as' in query
+});
 export default ServiceModel;
 import { DataTypes } from "sequelize";
 import sequelize from "../config/db.js"; // Adjust the import based on your project structure

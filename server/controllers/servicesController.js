@@ -1,4 +1,6 @@
+import { UsersModel } from "../models/model.js";
 import ServiceModel from "../models/service.js";
+import jwt from "jsonwebtoken";
 
 export async function addService(req, res) {
   try {
@@ -10,9 +12,32 @@ export async function addService(req, res) {
   }
 }
 
+export async function getAllServices(req, res) {
+  try {
+    const services = await ServiceModel.findAll({
+      include: [
+        {
+          model: UsersModel,
+          as: "user",
+          attributes: ["id", "first_name", "last_name", "email"],
+        },
+      ],
+    });
+    console.log(services);
+    res.status(200).json(services);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}
 export async function getServices(req, res) {
   try {
-    const services = await ServiceModel.findAll();
+    //getting the token
+    const reqToken = req.headers.authorization;
+    const token = reqToken && reqToken.split(" ")[1];
+    const decodedToken = jwt.decode(token);
+    const services = await ServiceModel.findAll({
+      where: { user_id: decodedToken.id },
+    });
     res.status(200).json(services);
   } catch (error) {
     res.status(500).json({ error: error.message });
