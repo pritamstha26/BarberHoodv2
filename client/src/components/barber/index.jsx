@@ -28,6 +28,7 @@ import {
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import api from "../../apis/api";
+import { useNavigate } from "react-router-dom";
 
 // Mock data
 const mockAppointments = [
@@ -60,27 +61,6 @@ const mockAppointments = [
   },
 ];
 
-const mockRequests = [
-  {
-    id: 1,
-    clientName: "Alex Johnson",
-    service: "Fade Cut",
-    requestedDate: "2024-01-17",
-    requestedTime: "3:00 PM",
-    phone: "+1234567893",
-    message: "Need a fresh fade for a job interview",
-  },
-  {
-    id: 2,
-    clientName: "Chris Brown",
-    service: "Mullet",
-    requestedDate: "2024-01-18",
-    requestedTime: "1:00 PM",
-    phone: "+1234567894",
-    message: "Regular customer, usual style",
-  },
-];
-
 const serviceTypes = [
   { id: 1, name: "Mullet", price: "$25", duration: "45 min" },
   { id: 2, name: "Slope Cut", price: "$20", duration: "30 min" },
@@ -92,6 +72,7 @@ const serviceTypes = [
 
 export default function BarberDashboard() {
   const [activeTab, setActiveTab] = useState("requests");
+  const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
   const [requests, setRequests] = useState([]);
@@ -152,6 +133,11 @@ export default function BarberDashboard() {
       default:
         return "secondary";
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("access_token");
+    navigate("/login");
   };
   useEffect(() => {
     fetchAllServiceRequests();
@@ -249,49 +235,49 @@ export default function BarberDashboard() {
   //   </div>
   // );
 
-  // const renderAppointments = () => (
-  //   <Card>
-  //     <Card.Header>
-  //       <h5>All Appointments</h5>
-  //     </Card.Header>
-  //     <Card.Body>
-  //       <Table responsive striped hover>
-  //         <thead>
-  //           <tr>
-  //             <th>ID</th>
-  //             <th>Client Name</th>
-  //             <th>Service</th>
-  //             <th>Date</th>
-  //             <th>Time</th>
-  //             <th>Status</th>
-  //             <th>Phone</th>
-  //           </tr>
-  //         </thead>
-  //         <tbody>
-  //           {appointments.map((appointment) => (
-  //             <tr key={appointment.id}>
-  //               <td>{appointment.id}</td>
-  //               <td>{appointment.clientName}</td>
-  //               <td>{appointment.service}</td>
-  //               <td>{appointment.date}</td>
-  //               <td>{appointment.time}</td>
-  //               <td>
-  //                 <Badge
-  //                   bg={
-  //                     appointment.status === "confirmed" ? "success" : "warning"
-  //                   }
-  //                 >
-  //                   {appointment.status}
-  //                 </Badge>
-  //               </td>
-  //               <td>{appointment.phone}</td>
-  //             </tr>
-  //           ))}
-  //         </tbody>
-  //       </Table>
-  //     </Card.Body>
-  //   </Card>
-  // );
+  const renderAppointments = () => (
+    <Card>
+      <Card.Header>
+        <h5>All Appointments</h5>
+      </Card.Header>
+      <Card.Body>
+        <Table responsive striped hover>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Client Name</th>
+              <th>Service</th>
+              <th>Date</th>
+              <th>Time</th>
+              <th>Status</th>
+              <th>Phone</th>
+            </tr>
+          </thead>
+          <tbody>
+            {appointments.map((appointment) => (
+              <tr key={appointment.id}>
+                <td>{appointment.id}</td>
+                <td>{appointment.clientName}</td>
+                <td>{appointment.service}</td>
+                <td>{appointment.date}</td>
+                <td>{appointment.time}</td>
+                <td>
+                  <Badge
+                    bg={
+                      appointment.status === "confirmed" ? "success" : "warning"
+                    }
+                  >
+                    {appointment.status}
+                  </Badge>
+                </td>
+                <td>{appointment.phone}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </Card.Body>
+    </Card>
+  );
 
   const renderRequests = () => (
     <Card>
@@ -530,7 +516,7 @@ export default function BarberDashboard() {
             <hr />
             <Nav.Link
               className="text-white"
-              onClick={() => alert("Logging out...")}
+              onClick={handleLogout}
               style={{ cursor: "pointer" }}
             >
               <FaSignOutAlt className="me-2" />

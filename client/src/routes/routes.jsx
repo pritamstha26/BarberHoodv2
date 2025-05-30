@@ -10,43 +10,35 @@ import BarberList from "../components/adminComponents/BarberList";
 import ServiceList from "../components/adminComponents/Services";
 import ClientPortal from "../components/client";
 import BarberDashboard from "../components/barber";
+import ProtectedRoute from "./ProtectedRoutes";
 
 //
 const routes = [
   { path: "/", element: <Navigate to="/login" replace /> },
   { path: "/login", element: <Login /> },
   { path: "/sign-up", element: <SignUp /> },
-  { path: "/client", element: <ClientPortal /> },
-  { path: "/barber", element: <BarberDashboard /> },
 
-  { path: "/*", element: <NotFound isAuthenticated="true" /> },
-
+  // Protected Routes wrapper
+  {
+    element: <ProtectedRoute />,
+    children: [
+      { path: "/client", element: <ClientPortal /> },
+      { path: "/barber", element: <BarberDashboard /> },
+    ],
+  },
   {
     path: "/admin",
     element: <AdminLayout />,
     children: [
-      {
-        path: "",
-        element: <Dashboard />,
-      },
-      {
-        path: "dashboard",
-        element: <Dashboard />,
-      },
-      {
-        path: "appointments",
-        element: <Appointments />,
-      },
-      {
-        path: "barber-list",
-        element: <BarberList />,
-      },
-      {
-        path: "services",
-        element: <ServiceList />,
-      },
+      { path: "", element: <Dashboard /> },
+      { path: "dashboard", element: <Dashboard /> },
+      { path: "appointments", element: <Appointments /> },
+      { path: "barber-list", element: <BarberList /> },
+      { path: "services", element: <ServiceList /> },
     ],
   },
+
+  { path: "/*", element: <NotFound isAuthenticated="true" /> },
 ];
 
 export default routes;
