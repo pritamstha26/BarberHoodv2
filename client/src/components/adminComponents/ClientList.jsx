@@ -7,11 +7,11 @@ import { useAppointments } from "../../context/Appointment_context";
 import api from "../../apis/api";
 import axios from "axios";
 import { jwtDecode } from "jwt-decode";
-export const BarberList = () => {
-  const { list, barberList, setList } = useAppointments();
+export const ClientList = () => {
+  const { list, clientList, setList } = useAppointments();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [selectedBarber, setSelectedBarber] = useState(null);
+  const [selectedClient, setSelectedClient] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
     first_name: "",
@@ -19,10 +19,10 @@ export const BarberList = () => {
     email: "",
     password: "",
     phone_number: "",
-    role: "barber",
+    role: "client",
   });
 
-  const handleAddBarber = async () => {
+  const handleAddClient = async () => {
     // Add barber logic would go here
     try {
       const token = localStorage.getItem("access_token");
@@ -39,18 +39,18 @@ export const BarberList = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error("An error occurred while adding the barber:", error);
+      console.error("An error occurred while adding the client:", error);
     }
 
     setShowAddModal(false);
   };
 
-  const handleEditBarber = (barber) => {
-    setSelectedBarber(barber);
+  const handleEditClient = (client) => {
+    setSelectedClient(client);
     setShowEditModal(true);
   };
 
-  const handleUpdateBarber = async (barb) => {
+  const handleUpdateClient = async (client) => {
     try {
       const token = localStorage.getItem("access_token");
 
@@ -61,7 +61,7 @@ export const BarberList = () => {
         delete updatedData.password;
       }
 
-      const response = await api.put(`/users/${barb.id}`, updatedData, {
+      const response = await api.put(`/users/${client.id}`, updatedData, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -72,26 +72,29 @@ export const BarberList = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error("An error occurred while updating the barber:", error);
+      console.error("An error occurred while updating the client:", error);
     }
     setShowEditModal(false);
   };
 
-  const filterBarber = barberList.filter(
-    (barber) =>
-      barber.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      barber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      barber.last_name.includes(searchTerm)
+  const filterClient = clientList.filter(
+    (client) =>
+      client.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      client.last_name.includes(searchTerm)
   );
-
-  const handleDeleteBarber = async (b_id) => {
-    if (!window.confirm("Are you sure you want to delete this barber?")) return;
+  const handleDeleteClient = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
 
     try {
       const token = localStorage.getItem("access_token");
+      if (!token) {
+        alert("No token found, please login again.");
+        return;
+      }
 
       const response = await axios.delete(
-        `http://localhost:5000/api/users/delete/${b_id}`,
+        `http://localhost:5000/api/users/delete/${id}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -99,24 +102,16 @@ export const BarberList = () => {
         }
       );
 
-      if (response.status === 200) {
-        // Remove barber from list after successful deletion
-        setList((prevList) => prevList.filter((barber) => barber.id !== b_id));
-        alert("Barber deleted successfully");
+      if (response.data.success) {
+        alert(response.data.message); // "User deleted successfully, related appointments cancelled"
+        // Update your local list by filtering out deleted user
+        setList((prevList) => prevList.filter((user) => user.id !== id));
       } else {
-        alert("Failed to delete barber");
+        alert(response.data.message || "Failed to delete user");
       }
     } catch (error) {
-      if (
-        error.response &&
-        error.response.status === 400 &&
-        error.response.data.message.includes("appointments")
-      ) {
-        alert("Cannot delete a barber who has existing appointments.");
-      } else {
-        console.error("An error occurred while deleting the barber:", error);
-        alert("An unexpected error occurred while deleting the barber.");
-      }
+      console.error("An error occurred while deleting the user:", error);
+      alert("Something went wrong while deleting the user.");
     }
   };
 
@@ -129,26 +124,25 @@ export const BarberList = () => {
   };
   const num = 1;
   useEffect(() => {
-    if (selectedBarber) {
+    if (selectedClient) {
       setFormData({
-        first_name: selectedBarber.first_name,
-        last_name: selectedBarber.last_name,
-        email: selectedBarber.email,
+        first_name: selectedClient.first_name,
+        last_name: selectedClient.last_name,
+        email: selectedClient.email,
         password: "",
-        phone_number: selectedBarber.phone_number,
+        phone_number: selectedClient.phone_number,
       });
     }
-  }, [selectedBarber]);
-
+  }, [selectedClient]);
   return (
     <div className="barber-list p-3">
       <div className="page-title d-flex justify-content-between align-items-center">
         <div>
-          <h2>Barber List</h2>
-          <p className="text-muted">Manage your barbers</p>
+          <h2>Client List</h2>
+          <p className="text-muted">Manage your clients</p>
         </div>
         <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={20} /> Add New Barber
+          <Plus size={20} /> Add New Client
         </Button>
       </div>
       <div className="mb-3">
@@ -176,29 +170,29 @@ export const BarberList = () => {
             </tr>
           </thead>
           <tbody>
-            {filterBarber.map((barber, num) => (
-              <tr key={barber.id}>
+            {filterClient.map((client, num) => (
+              <tr key={client.id}>
                 <td className="py-3">{num + 1}</td>
                 <td className="py-3">
-                  {barber.first_name} {barber.last_name}
+                  {client.first_name} {client.last_name}
                 </td>
                 <td className="py-3">
-                  <div>{barber.email}</div>
+                  <div>{client.email}</div>
                 </td>
 
-                <td className="py-3">{barber.phone_number}</td>
+                <td className="py-3">{client.phone_number}</td>
                 <td className="action-buttons d-flex justify-content-around py-3  ">
                   <Button
                     variant="outline-primary"
                     size="sm"
-                    onClick={() => handleEditBarber(barber)}
+                    onClick={() => handleEditClient(client)}
                   >
                     <Edit2 size={20} />
                   </Button>
                   <Button
                     variant="outline-danger"
                     size="sm"
-                    onClick={() => handleDeleteBarber(barber.id)}
+                    onClick={() => handleDeleteClient(client.id)}
                   >
                     <Trash2 size={20} />
                   </Button>
@@ -209,10 +203,10 @@ export const BarberList = () => {
         </Table>
       </div>
 
-      {/* Add Barber Modal */}
+      {/* Add Client Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Add New Barber</Modal.Title>
+          <Modal.Title>Add New Client</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -272,19 +266,19 @@ export const BarberList = () => {
           <Button variant="secondary" onClick={() => setShowAddModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={handleAddBarber}>
-            Add Barber
+          <Button variant="primary" onClick={handleAddClient}>
+            Add Client
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Edit Barber Modal */}
+      {/* Edit Client Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Barber</Modal.Title>
+          <Modal.Title>Edit Client</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {selectedBarber && (
+          {selectedClient && (
             <Form>
               <Form.Group className="mb-3">
                 <Form.Label>First name</Form.Label>
@@ -343,9 +337,9 @@ export const BarberList = () => {
           </Button>
           <Button
             variant="primary"
-            onClick={() => handleUpdateBarber(selectedBarber)}
+            onClick={() => handleUpdateClient(selectedClient)}
           >
-            Update Barber
+            Update Client
           </Button>
         </Modal.Footer>
       </Modal>
@@ -353,4 +347,4 @@ export const BarberList = () => {
   );
 };
 
-export default BarberList;
+export default ClientList;

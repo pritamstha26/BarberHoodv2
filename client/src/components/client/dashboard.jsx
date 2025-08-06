@@ -1,5 +1,14 @@
 import React, { useState, useEffect } from "react";
-import { Container, Row, Col, Card, Table, Badge } from "react-bootstrap";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Table,
+  Badge,
+  Button,
+  Alert,
+} from "react-bootstrap";
 import {
   FaCalendarAlt,
   FaClock,
@@ -7,57 +16,11 @@ import {
   FaTimesCircle,
   FaExclamationCircle,
 } from "react-icons/fa";
+import { ImCross } from "react-icons/im";
 import api from "../../apis/api";
 
 const Dashboard = () => {
   const [allServiceRequests, setAllServiceRequests] = useState([]);
-  const [requests] = useState([
-    {
-      id: "REQ-001",
-      service: "Website Development",
-      status: "In Progress",
-      priority: "High",
-      dateRequested: "2024-01-15",
-      estimatedCompletion: "2024-02-15",
-      description: "Custom e-commerce website with payment integration",
-    },
-    {
-      id: "REQ-002",
-      service: "Mobile App Design",
-      status: "Completed",
-      priority: "Medium",
-      dateRequested: "2024-01-10",
-      estimatedCompletion: "2024-01-25",
-      description: "UI/UX design for iOS and Android mobile application",
-    },
-    {
-      id: "REQ-003",
-      service: "SEO Optimization",
-      status: "Pending",
-      priority: "Low",
-      dateRequested: "2024-01-20",
-      estimatedCompletion: "2024-02-05",
-      description: "Search engine optimization for existing website",
-    },
-    {
-      id: "REQ-004",
-      service: "Database Migration",
-      status: "Cancelled",
-      priority: "High",
-      dateRequested: "2024-01-12",
-      estimatedCompletion: "2024-01-30",
-      description: "Migration from MySQL to PostgreSQL database",
-    },
-    {
-      id: "REQ-005",
-      service: "Cloud Migration",
-      status: "In Progress",
-      priority: "Medium",
-      dateRequested: "2024-01-18",
-      estimatedCompletion: "2024-02-20",
-      description: "Migration of services to AWS cloud infrastructure",
-    },
-  ]);
 
   const getStatusIcon = (status) => {
     switch (status) {
@@ -90,15 +53,34 @@ const Dashboard = () => {
   };
 
   const stats = {
-    total: requests.length,
-    completed: requests.filter((r) => r.status === "Completed").length,
-    inProgress: requests.filter((r) => r.status === "In Progress").length,
-    pending: requests.filter((r) => r.status === "Pending").length,
+    total: allServiceRequests.length,
+    completed: allServiceRequests.filter((r) => r.status === "completed")
+      .length,
+    terminated: allServiceRequests.filter((r) => r.status === "cancelled")
+      .length,
+    pending: allServiceRequests.filter((r) => r.status === "pending").length,
   };
 
-  useEffect(() => {
-    fetchServiceRequests();
-  }, []);
+  const handleStatusChange = async (id, newStatus) => {
+    try {
+      const response = await api.put(`/services/${id}`, { status: newStatus });
+
+      window.confirm("Are you sure you want to cancel the request?");
+      if (response.status === 200) {
+        setAllServiceRequests((prevRequests) =>
+          prevRequests.map((request) =>
+            request.id === id ? { ...request, status: newStatus } : request
+          )
+        );
+      } else {
+        console.error("Failed to update status:", response.data);
+        alert("Failed to update status");
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      alert("Error updating status");
+    }
+  };
 
   const fetchServiceRequests = async () => {
     try {
@@ -111,6 +93,10 @@ const Dashboard = () => {
     }
   };
 
+  const appointmentLength = allServiceRequests.length;
+  useEffect(() => {
+    fetchServiceRequests();
+  }, []);
   return (
     <Container fluid className="p-4">
       <div className="mb-4">
@@ -168,10 +154,10 @@ const Dashboard = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <Card.Text className="text-muted mb-1 small">
-                    In Progress
+                    Terminated
                   </Card.Text>
                   <Card.Title className="display-6 fw-bold mb-0 text-primary">
-                    {stats.inProgress}
+                    {stats.terminated}
                   </Card.Title>
                 </div>
                 <div className="bg-primary bg-opacity-10 p-3 rounded">
@@ -212,22 +198,22 @@ const Dashboard = () => {
           <Table responsive hover className="mb-0">
             <thead className="table-light">
               <tr>
-                <th className="px-4 py-3">Request ID</th>
+                <th className="px-4 py-3">SN</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Title</th>
                 <th className="px-4 py-3">Service Type</th>
                 <th className="px-4 py-3">Price</th>
                 <th className="px-4 py-3">Deadline </th>
                 <th className="px-4 py-3">Contact Method</th>
+                <th className="px-4 py-3">Action</th>
               </tr>
             </thead>
             <tbody>
-              {allServiceRequests.map((request) => (
+              {allServiceRequests.map((request, appointmentLength) => (
                 <tr key={request.id}>
                   <td className="px-4 py-3">
                     <div className="d-flex align-items-center">
-                      {/* {getStatusIcon(request.status)} */}
-                      <span className="fw-medium">{request.id}</span>
+                      <span className="fw-medium">{appointmentLength + 1}</span>
                     </div>
                   </td>
                   <td className="px-4 py-3">
@@ -249,8 +235,43 @@ const Dashboard = () => {
                     </Badge>
                   </td>
                   <td className="px-4 py-3">{request.price}</td>
-                  <td className="px-4 py-3">{request.deadline}</td>
+                  <td className="px-4 py-3">
+                    {new Date(request.deadline).toLocaleString("en-US", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    })}
+                  </td>
                   <td className="px-4 py-3">{request.prefer_contact_method}</td>
+                  <td className="px-4 py-3">
+                    <Button
+                      className={`${
+                        request.status === "cancelled" ||
+                        request.status === "completed"
+                          ? " bg-secondary-subtle btn-outline-dark "
+                          : " bg-white btn-outline-danger "
+                      }`}
+                      onClick={() =>
+                        handleStatusChange(request.id, "cancelled")
+                      }
+                      disabled={
+                        request.status === "cancelled" ||
+                        request.status === "completed"
+                      }
+                    >
+                      <ImCross
+                        color={
+                          request.status === "cancelled" ||
+                          request.status === "completed"
+                            ? "black"
+                            : "red"
+                        }
+                      />
+                    </Button>
+                  </td>
                 </tr>
               ))}
             </tbody>

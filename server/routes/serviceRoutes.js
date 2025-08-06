@@ -15,5 +15,4 @@ router.get("/all", getAllServices); // Route to get all services
 router.get("/:id", getServiceById); // Route to get a service by
 router.put("/:id", updateServiceById); // Route to update a service by ID
 router.delete("/:id", deleteServiceById); // Route to delete a service by ID
-
 export default router;

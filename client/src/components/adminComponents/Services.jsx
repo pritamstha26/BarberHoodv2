@@ -1,233 +1,291 @@
-import { useState } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Table,
-  Button,
-  Form,
-  InputGroup,
-  Badge,
-} from "react-bootstrap";
-import {
-  Search,
-  Scissors,
-  Clock,
-  DollarSign,
-  Edit,
-  Eye,
-  Plus,
-  TrendingUp,
-  Trash2,
-} from "lucide-react";
-import { useAppointments } from "../../context/appointment_context";
+import { useEffect, useState } from "react";
+import { Card, Table, Button, Modal, Form, Row, Col } from "react-bootstrap";
+import "./admin-panel.css";
+import { Edit2, Plus, Trash2, Search } from "lucide-react";
+import api from "../../apis/api";
+import axios from "axios";
 
-const realApi = () => {};
-//
+const Services = () => {
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
-export default function ServiceList() {
-  const { getAllServices, appointments, services } = useAppointments();
+  const [selectedService, setSelectedService] = useState(null);
+  const [data, setData] = useState([]);
 
+  const [formData, setFormData] = useState({
+    name: "",
+    price: "",
+    duration: "",
+  });
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+  const handleAddService = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+
+    try {
+      await axios.post("http://localhost:5000/api/barber-services/", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      alert("Service added successfully");
+      setShowAddModal(false);
+      location.reload();
+    } catch (error) {
+      console.error("Error adding service:", error.response?.data || error);
+      alert("Failed to add service");
+    }
+  };
+
+  const handleEditService = async (service) => {
+    setShowEditModal(true);
+    setSelectedService(service);
+  };
+
+  const handleUpdateService = async () => {
+    const token = localStorage.getItem("access_token");
+    const service = selectedService;
+
+    await api.put(`/barber-services/${service.id}`, formData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    setShowEditModal(false);
+    await getData();
+    alert("Service updated successfully");
+  };
+
+  const handleDeleteService = async (id) => {
+    if (window.confirm("Are you sure you want to delete this service?")) {
+      const token = localStorage.getItem("access_token");
+      const response = await api.delete(`/barber-services/${id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      console.log(response.data);
+      alert("Service deleted successfully");
+      location.reload();
+    }
+  };
+  const getData = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await api.get("/barber-services/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const result = response.data;
+      setData(result);
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    }
+  };
+  useEffect(() => {
+    getData();
+  }, []);
+  useEffect(() => {
+    if (selectedService) {
+      setFormData({
+        name: selectedService.name || "",
+        price: selectedService.price || "",
+        duration: selectedService.duration || "",
+      });
+    }
+  }, [selectedService]);
+  let num = 1;
+  console.log(data);
   return (
-    <div className="bg-light min-vh-100 py-3">
-      <Container fluid>
-        {/* Header */}
-        <Row className="mb-4">
-          <Col>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <h1 className="fw-bold text-dark mb-2">Service Management</h1>
-                <p className="lead text-muted">
-                  Manage your services, pricing, and performance
-                </p>
+    <div className="services p-3">
+      <div className="page-title d-flex justify-content-between align-items-center">
+        <div>
+          <h2>Services</h2>
+          <p className="text-muted">Manage your service offerings</p>
+        </div>
+        <Button variant="primary" onClick={() => setShowAddModal(true)}>
+          <Plus size={20} /> Add New Service
+        </Button>
+      </div>
+
+      <Row className="mb-4">
+        <Col md={4} className="mb-3">
+          <Card className="dashboard-card">
+            <Card.Body className="text-center">
+              <div className="card-icon bg-primary text-white mx-auto">
+                <i className="bi bi-scissors"></i>
               </div>
-            </div>
-          </Col>
-        </Row>
+              <h2>{data.length}</h2>
+              <p className="text-muted mb-0">Total Services</p>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+      <div className="table-container">
+        <Table responsive hover>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Service</th>
 
-        {/* Summary Cards */}
-        <Row className="mb-4">
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Card.Title className="text-muted fs-6 fw-normal mb-1">
-                      Total Services
-                    </Card.Title>
-                    <h4 className="fw-bold mb-0">{services.length}</h4>
-                  </div>
-                  <div className="text-primary">
-                    <Scissors size={24} />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
+              <th>Price</th>
+              <th>Duration</th>
 
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Card.Title className="text-muted fs-6 fw-normal mb-1">
-                      Average Price
-                    </Card.Title>
-                    <h4 className="fw-bold mb-0">
-                      Rs.
-                      {(
-                        services.reduce((sum, s) => sum + Number(s.price), 0) /
-                        services.length
-                      ).toFixed(2)}
-                    </h4>
-                    <small className="text-muted">Per service</small>
-                  </div>
-                  <div className="text-success">
-                    <DollarSign size={24} />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
+              <th className="d-flex justify-content-around ">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {data?.map((service, num) => (
+              <tr key={service.id}>
+                <td>{num + 1}</td>
+                <td>{service.name}</td>
 
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Card.Title className="text-muted fs-6 fw-normal mb-1">
-                      Total Service Cost
-                    </Card.Title>
-                    <h4 className="fw-bold mb-0">
-                      {services
-                        .reduce((sum, s) => sum + Number(s.price), 0)
-                        .toFixed(2)}
-                    </h4>
-                  </div>
-                  <div className="text-success">
-                    <TrendingUp size={24} />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
+                <td>Rs.{service.price}</td>
+                <td>{service.duration} mins</td>
 
-          <Col lg={3} md={6} className="mb-3">
-            <Card className="h-100 border-0 shadow-sm">
-              <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <Card.Title className="text-muted fs-6 fw-normal mb-1">
-                      Avg Duration
-                    </Card.Title>
-                    <h4 className="fw-bold mb-0">
-                      {Math.round(
-                        services.reduce(
-                          (sum, s) => sum + Number(s.duration),
-                          0
-                        ) / services.length
-                      )}{" "}
-                      min
-                    </h4>
-                    <small className="text-muted">Per service</small>
-                  </div>
-                  <div className="text-info">
-                    <Clock size={24} />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+                <td className="action-buttons d-flex justify-content-around">
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => handleEditService(service)}
+                  >
+                    <Edit2 size={20} />
+                  </Button>
+                  <Button
+                    variant="outline-danger"
+                    size="sm"
+                    onClick={() => handleDeleteService(service.id)}
+                  >
+                    <Trash2 size={20} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      </div>
 
-        {/* Search */}
+      {/* Add Service Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Service</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Title </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter the name"
+                    name="name"
+                    onChange={handleChange}
+                    value={formData.name}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Price (Rs)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="Enter price"
+                    name="price"
+                    onChange={handleChange}
+                    value={formData.price}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Duration (in minutes)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="Enter duration"
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleAddService}>
+            Add Service
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
-        {/* Services Table */}
-        <Row>
-          <Col>
-            <Card className="border-0 shadow-sm">
-              <Card.Header className="bg-white d-flex justify-content-between align-items-center">
-                {/* <Card.Title className="mb-0">
-                  All Services ({filteredServices.length})
-                </Card.Title> */}
-              </Card.Header>
-              <Card.Body className="p-0">
-                <div className="table-responsive">
-                  <Table hover className="mb-0">
-                    <thead className="table-light">
-                      <tr>
-                        <th style={{ width: "80px" }}>ID</th>
-                        <th>Service Name</th>
-                        <th>Duration</th>
-                        <th>Price</th>
-
-                        <th style={{ width: "120px" }}>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {services
-                        .sort((a, b) => a.id - b.id)
-                        .map((service) => {
-                          return (
-                            <tr key={service.id}>
-                              <td className="fw-bold">{service.id}</td>
-                              <td>
-                                <div className="d-flex align-items-center gap-2">
-                                  <Scissors size={16} className="text-muted" />
-                                  <span className="fw-medium">
-                                    {service.name}
-                                  </span>
-                                </div>
-                              </td>
-                              <td>
-                                <div className="d-flex align-items-center gap-2">
-                                  <Clock size={16} className="text-muted" />
-                                  {service.duration} min
-                                </div>
-                              </td>
-                              <td>
-                                <div className="d-flex align-items-center gap-2">
-                                  Rs. {service.price}
-                                </div>
-                              </td>
-                              <td>
-                                <div className="d-flex gap-1">
-                                  <Button
-                                    variant="outline-success"
-                                    size="sm"
-                                    title="View Details"
-                                  >
-                                    <Edit size={14} />
-                                  </Button>
-                                  <Button
-                                    variant="outline-danger"
-                                    size="sm"
-                                    title="Edit Service"
-                                  >
-                                    <Trash2 size={14} />
-                                  </Button>
-                                </div>
-                              </td>
-                            </tr>
-                          );
-                        })}
-                    </tbody>
-                  </Table>
-                </div>
-
-                {/* {filteredServices.length === 0 && (
-                  <div className="text-center py-5">
-                    <p className="text-muted mb-0">
-                      No services found matching your search criteria.
-                    </p>
-                  </div>
-                )} */}
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
+      {/* Edit Service Modal */}
+      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Service</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedService && (
+            <Form>
+              <Row>
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Title</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={formData.name || ""}
+                      onChange={handleChange}
+                      name="name"
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Duration (in minutes)</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={formData.duration}
+                      name="duration"
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Price (Rs)</Form.Label>
+                    <Form.Control
+                      type="number"
+                      name="price"
+                      value={formData.price}
+                      onChange={handleChange}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </Form>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleUpdateService}>
+            Update Service
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
-}
+};
+
+export default Services;

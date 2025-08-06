@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Nav, Button } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { FaHome, FaCog, FaSignOutAlt, FaFileAlt, FaUser } from "react-icons/fa";
+import { jwtDecode } from "jwt-decode";
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
@@ -17,7 +18,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
   };
 
   const sidebarStyle = {
-    width: "250px",
+    width: "350px",
     height: "100vh",
     position: "fixed",
     left: 0,
@@ -26,6 +27,9 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
     backgroundColor: "#ffffff",
     boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
   };
+
+  const localStorageData = localStorage.getItem("access_token");
+  const decodeToken = jwtDecode(localStorageData);
 
   return (
     <div style={sidebarStyle}>
@@ -39,8 +43,10 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
             <FaUser className="text-white" />
           </div>
           <div>
-            <h6 className="mb-0 fw-bold text-dark">John Doe</h6>
-            <small className="text-muted">Client</small>
+            <h5 className="mb-0 fw-bold text-capitalize">
+              {decodeToken.first_name} {decodeToken.last_name}
+            </h5>
+            <small className="text-muted">{decodeToken.role}</small>
           </div>
         </div>
       </div>

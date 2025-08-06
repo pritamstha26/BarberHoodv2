@@ -25,7 +25,7 @@ function App() {
     <div className="min-vh-100 bg-light">
       <div className="d-flex">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-fill" style={{ marginLeft: "250px" }}>
+        <main className="flex-fill" style={{ marginLeft: "350px" }}>
           {renderContent()}
         </main>
       </div>

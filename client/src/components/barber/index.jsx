@@ -1,6 +1,4 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import { use, useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -29,46 +27,9 @@ import {
 import "bootstrap/dist/css/bootstrap.min.css";
 import api from "../../apis/api";
 import { useNavigate } from "react-router-dom";
-
-// Mock data
-const mockAppointments = [
-  {
-    id: 1,
-    clientName: "John Doe",
-    service: "Mullet",
-    date: "2024-01-15",
-    time: "10:00 AM",
-    status: "confirmed",
-    phone: "+1234567890",
-  },
-  {
-    id: 2,
-    clientName: "Mike Smith",
-    service: "Slope Cut",
-    date: "2024-01-15",
-    time: "2:00 PM",
-    status: "confirmed",
-    phone: "+1234567891",
-  },
-  {
-    id: 3,
-    clientName: "David Wilson",
-    service: "Beard Trim",
-    date: "2024-01-16",
-    time: "11:00 AM",
-    status: "pending",
-    phone: "+1234567892",
-  },
-];
-
-const serviceTypes = [
-  { id: 1, name: "Mullet", price: "$25", duration: "45 min" },
-  { id: 2, name: "Slope Cut", price: "$20", duration: "30 min" },
-  { id: 3, name: "Fade Cut", price: "$22", duration: "35 min" },
-  { id: 4, name: "Buzz Cut", price: "$15", duration: "20 min" },
-  { id: 5, name: "Beard Trim", price: "$12", duration: "25 min" },
-  { id: 6, name: "Full Service", price: "$35", duration: "60 min" },
-];
+import { jwtDecode } from "jwt-decode";
+import { Plus } from "lucide-react";
+import axios from "axios";
 
 export default function BarberDashboard() {
   const [activeTab, setActiveTab] = useState("requests");
@@ -81,7 +42,45 @@ export default function BarberDashboard() {
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertVariant, setAlertVariant] = useState("success");
+  //
+  const [barberInfo, setBarberInfo] = useState(null);
+  const [formData, setFormData] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    phone_number: "",
+  });
+  const [serviceDataForm, setServiceDataForm] = useState({
+    name: "",
+    price: "",
+    duration: "",
+  });
 
+  const [services, setServices] = useState([]);
+  const [selectedService, setSelectedService] = useState(null);
+
+  const [show, setShow] = useState(false);
+  const handleClose = () => setShow(!show);
+  const handleService = (service) => {
+    setSelectedService(service);
+    setShow(true);
+  };
+  const getServices = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const response = await api.get("/barber-services/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.status === 200) {
+        setServices(response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching services:", error);
+    }
+  };
   const handleApproveRequest = (requestId) => {
     const request = requests.find((r) => r.id === requestId);
     if (request) {
@@ -139,101 +138,188 @@ export default function BarberDashboard() {
     localStorage.removeItem("access_token");
     navigate("/login");
   };
-  useEffect(() => {
-    fetchAllServiceRequests();
-  }, []);
+  const handleAddService = async (e) => {
+    e.preventDefault();
+    const token = localStorage.getItem("access_token");
+
+    try {
+      const response = await axios.post(
+        "http://localhost:5000/api/barber-services/", // Change to your backend URL
+        serviceDataForm,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      alert("Service added successfully");
+      setShow(false);
+      location.reload();
+    } catch (error) {
+      console.error("Error adding service:", error.response?.data || error);
+      alert("Failed to add service");
+    }
+  };
+
+  const handleUpdateBarber = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      const decode = jwtDecode(token);
+
+      const updatedData = { ...formData };
+
+      // Remove password field if it's empty or only whitespace
+      if (!updatedData.password?.trim()) {
+        delete updatedData.password;
+      }
+
+      const response = await api.put(`/users/${decode.id}`, updatedData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (response.status === 200) {
+        alert("successfully ");
+        localStorage.removeItem("access_token");
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("An error occurred while updating the barber:", error);
+    }
+  };
+  const handleUpdateService = async () => {
+    const token = localStorage.getItem("access_token");
+    const service = selectedService;
+    await api.put(`/barber-services/${service.id}`, serviceDataForm, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    setShow(false);
+    await getServices();
+  };
+
   const fetchAllServiceRequests = async () => {
     // Simulate fetching data from an API
     try {
-      const response = await api.get("/services/all");
-      if (response.status === 200) {
-        setRequests(response.data);
-      }
+      const token = localStorage.getItem("access_token");
+      // const response = await api.get(`/appointments/all`, {
+      //   headers: {
+      //     Authorization: `Bearer ${token}`,
+      //   },
+      // });
+      // if (response.status === 200) {
+      //   // setRequests(response.data);
+      //   console.log("data fetched", response.data);
+      // }
     } catch (error) {
       console.error("Error fetching service requests:", error);
     }
   };
 
-  // const renderDashboard = () => (
-  //   <div>
-  //     <Row className="mb-4">
-  //       <Col md={3}>
-  //         <Card className="text-center bg-primary text-white">
-  //           <Card.Body>
-  //             <h3>{appointments.length}</h3>
-  //             <p>Total Appointments</p>
-  //           </Card.Body>
-  //         </Card>
-  //       </Col>
-  //       <Col md={3}>
-  //         <Card className="text-center bg-success text-white">
-  //           <Card.Body>
-  //             <h3>
-  //               {appointments.filter((a) => a.status === "confirmed").length}
-  //             </h3>
-  //             <p>Confirmed</p>
-  //           </Card.Body>
-  //         </Card>
-  //       </Col>
-  //       <Col md={3}>
-  //         <Card className="text-center bg-warning text-white">
-  //           <Card.Body>
-  //             <h3>{requests.length}</h3>
-  //             <p>Pending Requests</p>
-  //           </Card.Body>
-  //         </Card>
-  //       </Col>
-  //       <Col md={3}>
-  //         <Card className="text-center bg-info text-white">
-  //           <Card.Body>
-  //             <h3>${appointments.length * 22}</h3>
-  //             <p>Est. Revenue</p>
-  //           </Card.Body>
-  //         </Card>
-  //       </Col>
-  //     </Row>
+  const fetchUserById = async () => {
+    const token = localStorage.getItem("access_token");
+    const decode = jwtDecode(token);
+    const response = await api.get(`/users/${decode.id}`);
+    if (response.status === 200) {
+      setBarberInfo(response.data.data);
+    }
+  };
 
-  //     <Card>
-  //       <Card.Header>
-  //         <h5>Today's Appointments</h5>
-  //       </Card.Header>
-  //       <Card.Body>
-  //         <Table responsive striped>
-  //           <thead>
-  //             <tr>
-  //               <th>Client</th>
-  //               <th>Service</th>
-  //               <th>Time</th>
-  //               <th>Status</th>
-  //               <th>Phone</th>
-  //             </tr>
-  //           </thead>
-  //           <tbody>
-  //             {appointments.slice(0, 5).map((appointment) => (
-  //               <tr key={appointment.id}>
-  //                 <td>{appointment.clientName}</td>
-  //                 <td>{appointment.service}</td>
-  //                 <td>{appointment.time}</td>
-  //                 <td>
-  //                   <Badge
-  //                     bg={
-  //                       appointment.status === "confirmed"
-  //                         ? "success"
-  //                         : "warning"
-  //                     }
-  //                   >
-  //                     {appointment.status}
-  //                   </Badge>
-  //                 </td>
-  //                 <td>{appointment.phone}</td>
-  //               </tr>
-  //             ))}
-  //           </tbody>
-  //         </Table>
-  //       </Card.Body>
-  //     </Card>
-  //   </div>
-  // );
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  const handleServiceChange = (e) => {
+    const { name, value } = e.target;
+    setServiceDataForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+  const renderDashboard = () => (
+    <div>
+      <Row className="mb-4">
+        <Col md={3}>
+          <Card className="text-center bg-primary text-white">
+            <Card.Body>
+              <h3>{appointments.length}</h3>
+              <p>Total Appointments</p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center bg-success text-white">
+            <Card.Body>
+              <h3>
+                {appointments.filter((a) => a.status === "confirmed").length}
+              </h3>
+              <p>Confirmed</p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center bg-warning text-white">
+            <Card.Body>
+              <h3>{requests.length}</h3>
+              <p>Pending Requests</p>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col md={3}>
+          <Card className="text-center bg-info text-white">
+            <Card.Body>
+              <h3>Rs.{appointments.length * 22}</h3>
+              <p>Est. Revenue</p>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      <Card>
+        <Card.Header>
+          <h5>Today's Appointments</h5>
+        </Card.Header>
+        <Card.Body>
+          <Table responsive striped>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Service</th>
+                <th>Time</th>
+                <th>Status</th>
+                <th>Phone</th>
+              </tr>
+            </thead>
+            <tbody>
+              {appointments.slice(0, 5).map((appointment) => (
+                <tr key={appointment.id}>
+                  <td>{appointment.clientName}</td>
+                  <td>{appointment.service}</td>
+                  <td>{appointment.time}</td>
+                  <td>
+                    <Badge
+                      bg={
+                        appointment.status === "confirmed"
+                          ? "success"
+                          : "warning"
+                      }
+                    >
+                      {appointment.status}
+                    </Badge>
+                  </td>
+                  <td>{appointment.phone}</td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </Card.Body>
+      </Card>
+    </div>
+  );
 
   const renderAppointments = () => (
     <Card>
@@ -253,27 +339,37 @@ export default function BarberDashboard() {
               <th>Phone</th>
             </tr>
           </thead>
-          <tbody>
-            {appointments.map((appointment) => (
-              <tr key={appointment.id}>
-                <td>{appointment.id}</td>
-                <td>{appointment.clientName}</td>
-                <td>{appointment.service}</td>
-                <td>{appointment.date}</td>
-                <td>{appointment.time}</td>
-                <td>
-                  <Badge
-                    bg={
-                      appointment.status === "confirmed" ? "success" : "warning"
-                    }
-                  >
-                    {appointment.status}
-                  </Badge>
-                </td>
-                <td>{appointment.phone}</td>
+          {appointments.length > 0 ? (
+            <tbody>
+              {appointments.map((appointment) => (
+                <tr key={appointment.id}>
+                  <td>{appointment.id}</td>
+                  <td>{appointment.clientName}</td>
+                  <td>{appointment.service}</td>
+                  <td>{appointment.date}</td>
+                  <td>{appointment.time}</td>
+                  <td>
+                    <Badge
+                      bg={
+                        appointment.status === "confirmed"
+                          ? "success"
+                          : "warning"
+                      }
+                    >
+                      {appointment.status}
+                    </Badge>
+                  </td>
+                  <td>{appointment.phone}</td>
+                </tr>
+              ))}
+            </tbody>
+          ) : (
+            <tbody key={appointments.id}>
+              <tr>
+                <td>No appointments</td>
               </tr>
-            ))}
-          </tbody>
+            </tbody>
+          )}
         </Table>
       </Card.Body>
     </Card>
@@ -349,84 +445,123 @@ export default function BarberDashboard() {
     </Card>
   );
 
-  // const renderServices = () => (
-  //   <Card>
-  //     <Card.Header>
-  //       <h5>Service Types</h5>
-  //     </Card.Header>
-  //     <Card.Body>
-  //       <Row>
-  //         {serviceTypes.map((service) => (
-  //           <Col md={4} className="mb-3" key={service.id}>
-  //             <Card className="h-100">
-  //               <Card.Body className="text-center">
-  //                 <FaCut className="mb-2" size={30} />
-  //                 <Card.Title>{service.name}</Card.Title>
-  //                 <Card.Text>
-  //                   <strong>Price:</strong> {service.price}
-  //                   <br />
-  //                   <strong>Duration:</strong> {service.duration}
-  //                 </Card.Text>
-  //                 <Button variant="outline-primary" size="sm">
-  //                   Edit Service
-  //                 </Button>
-  //               </Card.Body>
-  //             </Card>
-  //           </Col>
-  //         ))}
-  //       </Row>
-  //     </Card.Body>
-  //   </Card>
-  // );
+  const renderServices = () => (
+    <Card>
+      <Card.Header>
+        <div className="page-title d-flex justify-content-between align-items-center">
+          <div>
+            <h2>Services</h2>
+            <p className="text-muted">Manage your service offerings</p>
+          </div>
+          <Button variant="primary" onClick={() => setShow(true)}>
+            <Plus size={20} /> Add New Service
+          </Button>
+        </div>
+      </Card.Header>
+      <Card.Body>
+        <Row>
+          {services?.map((service) => (
+            <Col md={4} className="mb-3" key={service.id}>
+              <Card className="h-100">
+                <Card.Body className="text-center">
+                  <FaCut className="mb-2" size={30} />
+                  <Card.Title>{service?.name}</Card.Title>
+                  <Card.Text>
+                    <strong>Price:</strong> {service?.price}
+                    <br />
+                    <strong>Duration:</strong> {service?.duration}
+                  </Card.Text>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    onClick={() => handleService(service)}
+                  >
+                    Edit Service
+                  </Button>
+                </Card.Body>
+              </Card>
+            </Col>
+          ))}
+        </Row>
+      </Card.Body>
+    </Card>
+  );
 
-  // const renderSettings = () => (
-  //   <Card>
-  //     <Card.Header>
-  //       <h5>Settings</h5>
-  //     </Card.Header>
-  //     <Card.Body>
-  //       <Form>
-  //         <Row>
-  //           <Col md={6}>
-  //             <Form.Group className="mb-3">
-  //               <Form.Label>Barber Shop Name</Form.Label>
-  //               <Form.Control type="text" defaultValue="Mike's Barber Shop" />
-  //             </Form.Group>
-  //           </Col>
-  //           <Col md={6}>
-  //             <Form.Group className="mb-3">
-  //               <Form.Label>Contact Phone</Form.Label>
-  //               <Form.Control type="tel" defaultValue="+1234567890" />
-  //             </Form.Group>
-  //           </Col>
-  //         </Row>
-  //         <Row>
-  //           <Col md={6}>
-  //             <Form.Group className="mb-3">
-  //               <Form.Label>Opening Time</Form.Label>
-  //               <Form.Control type="time" defaultValue="09:00" />
-  //             </Form.Group>
-  //           </Col>
-  //           <Col md={6}>
-  //             <Form.Group className="mb-3">
-  //               <Form.Label>Closing Time</Form.Label>
-  //               <Form.Control type="time" defaultValue="18:00" />
-  //             </Form.Group>
-  //           </Col>
-  //         </Row>
-  //         <Form.Group className="mb-3">
-  //           <Form.Label>Address</Form.Label>
-  //           <Form.Control
-  //             as="textarea"
-  //             rows={3}
-  //             defaultValue="123 Main Street, City, State 12345"
-  //           />
-  //         </Form.Group>
-  //         <Button variant="primary">Save Settings</Button>
-  //       </Form>
-  //     </Card.Body>
-  //   </Card>
-  // );
+  const renderSettings = () => (
+    <Card>
+      <Card.Header>
+        <h5>Settings</h5>
+      </Card.Header>
+      <Card.Body>
+        <Form>
+          <Row>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>First name</Form.Label>
+                <Form.Control
+                  className="text-capitalize"
+                  type="text"
+                  name="first_name"
+                  value={formData.first_name}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Last name</Form.Label>
+                <Form.Control
+                  type="text"
+                  name="last_name"
+                  className="text-capitalize"
+                  value={formData.last_name}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Contact Phone</Form.Label>
+                <Form.Control
+                  type="number"
+                  name="phone_number"
+                  value={formData.phone_number}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Email</Form.Label>
+                <Form.Control
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            </Col>{" "}
+            <Col md={6}>
+              <Form.Group className="mb-3">
+                <Form.Label>Password</Form.Label>
+                <Form.Control
+                  placeholder="Enter your password"
+                  type="text"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleInputChange}
+                />
+              </Form.Group>
+            </Col>
+          </Row>
+
+          <Button variant="primary" onClick={handleUpdateBarber}>
+            Save Settings
+          </Button>
+        </Form>
+      </Card.Body>
+    </Card>
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -444,7 +579,32 @@ export default function BarberDashboard() {
         return renderDashboard();
     }
   };
+  useEffect(() => {
+    fetchAllServiceRequests();
+    fetchUserById();
+    getServices();
+  }, []);
+  useEffect(() => {
+    if (barberInfo) {
+      setFormData({
+        first_name: barberInfo.first_name,
+        last_name: barberInfo.last_name,
+        email: barberInfo.email,
+        password: "",
+        phone_number: barberInfo.phone_number,
+      });
+    }
+  }, [barberInfo]);
+  useEffect(() => {
+    if (selectedService) {
+      setServiceDataForm({
+        name: selectedService.name || "",
+        price: selectedService.price || "",
 
+        duration: selectedService.duration || "",
+      });
+    }
+  }, [selectedService]);
   return (
     <div className="d-flex" style={{ minHeight: "100vh" }}>
       {/* Sidebar */}
@@ -530,7 +690,13 @@ export default function BarberDashboard() {
       <div className="flex-grow-1">
         <Navbar bg="light" expand="lg" className="border-bottom">
           <Container fluid>
-            <Navbar.Brand>Welcome, Mike!</Navbar.Brand>
+            <Navbar.Brand>
+              Welcome,
+              <span className="fw-bold text-capitalize">
+                {formData.first_name} {formData.last_name}
+              </span>
+              !
+            </Navbar.Brand>
             <Navbar.Text className="ms-auto">
               {new Date().toLocaleDateString("en-US", {
                 weekday: "long",
@@ -618,6 +784,116 @@ export default function BarberDashboard() {
               </Button>
             </>
           )}
+        </Modal.Footer>
+      </Modal>
+      {/* Service edit Modal */}
+      <Modal show={show} onHide={handleClose}>
+        <Modal.Header closeButton>
+          <Modal.Title>Edit Services</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Form.Group className="mb-3" controlId="edit service price">
+              <Form.Label className="fw-bold">Title</Form.Label>
+              <Form.Control
+                type="text"
+                value={serviceDataForm.name || ""}
+                name="name"
+                onChange={handleServiceChange}
+                autoFocus
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId="edit service price">
+              <Form.Label className="fw-bold">Price</Form.Label>
+              <Form.Control
+                type="number"
+                value={serviceDataForm?.price || ""}
+                onChange={handleServiceChange}
+                name="price"
+                autoFocus
+                required
+              />
+            </Form.Group>
+            <Form.Group className="mb-3" controlId=" edit service price">
+              <Form.Label className="fw-bold">Duration</Form.Label>
+              <Form.Control
+                type="number"
+                onChange={handleServiceChange}
+                name="duration"
+                autoFocus
+                value={serviceDataForm?.duration || ""}
+                required
+              />
+            </Form.Group>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleClose}>
+            Close
+          </Button>
+          <Button variant="primary" onClick={handleUpdateService}>
+            Save Changes
+          </Button>
+        </Modal.Footer>
+      </Modal>
+      {/* add services */}
+      <Modal show={show} onHide={setShow}>
+        <Modal.Header closeButton>
+          <Modal.Title>Add New Service</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Title </Form.Label>
+                  <Form.Control
+                    type="text"
+                    placeholder="Enter the title"
+                    name="name"
+                    onChange={handleServiceChange}
+                    value={serviceDataForm.title}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Price (Rs)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="Enter price"
+                    name="price"
+                    onChange={handleServiceChange}
+                    value={serviceDataForm.price}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Duration (in minutes)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    placeholder="Enter duration"
+                    name="duration"
+                    value={serviceDataForm.duration}
+                    onChange={handleServiceChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShow(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={handleAddService}>
+            Add Service
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { use, useEffect, useState } from "react";
 import {
   Container,
   Card,
@@ -9,6 +9,8 @@ import {
   Alert,
   ProgressBar,
 } from "react-bootstrap";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
 import { FaPaperPlane, FaUpload, FaTimes, FaSave } from "react-icons/fa";
 import api from "../../apis/api";
 import { jwtDecode } from "jwt-decode";
@@ -19,20 +21,14 @@ const RequestService = () => {
     title: "",
     description: "",
     price: "",
-    deadline: "",
+    deadline: new Date(Date.now() + 60 * 60 * 1000),
     prefer_contact_method: "email",
+    duration: "",
   });
-
+  const [apiData, setApiData] = useState([]);
   const [validated, setValidated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-
-  const serviceTypes = [
-    "MULLET Hair Services",
-    "SLOPE Hair Services",
-    "SHAVE",
-    "THREADING",
-    "FACE MASSAGE",
-  ];
+  const [selectedService, setSelectedService] = useState(null);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -55,6 +51,7 @@ const RequestService = () => {
     //adding the user_id to the formData
     const token = localStorage.getItem("access_token");
     const decoded = jwtDecode(token);
+
     formData.user_id = decoded.id;
 
     await addServiceRequest(formData);
@@ -73,6 +70,7 @@ const RequestService = () => {
           price: "",
           deadline: "",
           prefer_contact_method: "email",
+          duration: "",
         });
         setTimeout(() => {
           window.location.reload(); // Reload the page to reset the form
@@ -83,7 +81,60 @@ const RequestService = () => {
       // Handle error appropriately
     }
   };
+  const filterPassedTime = (time) => {
+    const selectedHour = time.getHours();
+    return selectedHour >= 8 && selectedHour < 20;
+  };
 
+  const date = new Date("2025-07-28T00:00:00.000Z");
+  useEffect(() => {
+    const response = async () => {
+      try {
+        const token = localStorage.getItem("access_token");
+        if (!token) {
+          console.error("No access token found");
+          return;
+        }
+        const res = await api.get("/services/all", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.status === 200) {
+          // Assuming the response contains an array of service types
+          setApiData(res.data.data);
+        }
+      } catch (error) {
+        console.error("Error fetching API data:", error);
+      }
+    };
+    response();
+  }, []);
+
+  const [data, setDatas] = useState([]);
+  const apis = async () => {
+    try {
+      const token = localStorage.getItem("access_token");
+      if (!token) {
+        console.error("No access token found");
+        return;
+      }
+      const res = await api.get("/barber-services/all", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (res.status === 200) {
+        // Assuming the response contains an array of service types
+        setDatas(res.data);
+      }
+    } catch (error) {
+      console.error("Error fetching API data:", error);
+    }
+  };
+  useEffect(() => {
+    apis();
+  }, []);
   return (
     <Container fluid className="p-4">
       <div className="mb-4">
@@ -115,7 +166,7 @@ const RequestService = () => {
         </Card.Header>
         <Card.Body className="p-4">
           <Form noValidate validated={validated} onSubmit={handleSubmit}>
-            {/* Service Type and Priority Row */}
+            {/* Service Type Dropdown */}
             <Row className="g-3 mb-3">
               <Col md={6}>
                 <Form.Group>
@@ -125,16 +176,30 @@ const RequestService = () => {
                   <Form.Select
                     name="service_type"
                     value={formData.service_type}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      setFormData((prev) => ({ ...prev, service_type: value }));
+
+                      const found = data.find((s) => s.name === value);
+                      setSelectedService(found || null);
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        service_type: value,
+                        price: found?.price || "",
+                        duration: found?.duration || "",
+                      }));
+                    }}
                     required
                   >
                     <option value="">Select a service</option>
-                    {serviceTypes.map((type) => (
-                      <option key={type} value={type}>
-                        {type}
+                    {data.map((service) => (
+                      <option key={service.id} value={service.name}>
+                        {service.name}
                       </option>
                     ))}
                   </Form.Select>
+
                   <Form.Control.Feedback type="invalid">
                     Please select a service type.
                   </Form.Control.Feedback>
@@ -184,29 +249,50 @@ const RequestService = () => {
 
             {/* Budget and Deadline Row */}
             <Row className="g-3 mb-3">
-              <Col md={6}>
+              <Col md={4}>
                 <Form.Group>
-                  <Form.Label className="fw-medium">Price</Form.Label>
+                  <Form.Label className="fw-medium">Price(in Rs.)</Form.Label>
                   <Form.Control
                     type="text"
                     name="price"
                     value={formData.price}
                     onChange={handleInputChange}
+                    disabled
+                  ></Form.Control>
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="fw-medium">
+                    Duration(in minutes)
+                  </Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="duration"
+                    value={formData.duration}
+                    onChange={handleInputChange}
+                    disabled
                   ></Form.Control>
                 </Form.Group>
               </Col>
 
-              <Col md={6}>
+              <Col md={4}>
                 <Form.Group>
-                  <Form.Label className="fw-medium">
-                    Preferred Deadline
-                  </Form.Label>
-                  <Form.Control
-                    type="date"
-                    name="deadline"
-                    value={formData.deadline}
-                    onChange={handleInputChange}
-                    min={new Date().toISOString().split("T")[0]}
+                  <Form.Label>Preferred Deadline</Form.Label>
+                  <br />
+
+                  <DatePicker
+                    selected={
+                      formData.deadline ? new Date(formData.deadline) : null
+                    }
+                    onChange={(date) =>
+                      setFormData({ ...formData, deadline: date })
+                    }
+                    showTimeSelect
+                    filterTime={filterPassedTime}
+                    timeIntervals={15}
+                    dateFormat="Pp"
+                    minDate={new Date()}
                   />
                 </Form.Group>
               </Col>
@@ -235,8 +321,9 @@ const RequestService = () => {
                       value="phone"
                       checked={formData.prefer_contact_method === "phone"}
                       onChange={handleInputChange}
-                      label="Phone"
+                      label="Phone(Feature Coming Soon)"
                       id="phone"
+                      disabled
                     />
                   </div>
                 </Form.Group>

@@ -4,25 +4,84 @@ import { UsersModel } from "../models/model.js";
 
 export const register = async (req, res) => {
   try {
-    const password = req.body["password"];
+    const authHeader = req.headers.authorization;
+    let isAdmin = false;
+
+    // Check if requester is admin by decoding token
+    if (authHeader) {
+      const token = authHeader.split(" ")[1];
+      const decoded = jwt.decode(token);
+
+      const adminUser = await UsersModel.findOne({ where: { id: decoded.id } });
+      if (adminUser?.role === "admin") {
+        isAdmin = true;
+      }
+    }
+
+    // Extract password and hash it
+    const password = req.body.password;
+    if (!password) {
+      return res.status(400).json({ message: "Password is required" });
+    }
     const hashedPassword = await bcrypt.hash(password, 10);
-    req.body.password = hashedPassword;
 
-    const found = await UsersModel.findOne({
-      where: { email: req.body["email"] },
+    // Check if email already exists
+    const existingUser = await UsersModel.findOne({
+      where: { email: req.body.email },
     });
-
-    if (found) {
+    if (existingUser) {
       return res
         .status(400)
         .json({ exists: true, message: "Email already registered" });
     }
 
-    const user = await UsersModel.create(req.body);
-    const token = createToken(user);
+    let role = "client"; // default role
+
+    const allowedRoles = isAdmin
+      ? ["client", "barber", "admin"]
+      : ["client", "barber"];
+
+    if (req.body.role) {
+      if (allowedRoles.includes(req.body.role)) {
+        role = req.body.role;
+      } else {
+        return res.status(400).json({ message: "Invalid role specified" });
+      }
+    }
+
+    // Create user data object
+    const userData = {
+      first_name: req.body.first_name,
+      last_name: req.body.last_name,
+      email: req.body.email,
+      phone_number: req.body.phone_number,
+      password: hashedPassword,
+      role,
+    };
+
+    // Save the new user
+    const user = await UsersModel.create(userData);
+
+    // Response depends on who registered
+    if (!isAdmin) {
+      // Public registration returns token
+      const token = createToken(user);
+      return res.status(201).json({
+        message: "User registered successfully",
+        access_token: token,
+      });
+    }
+
+    // Admin registration returns user info (no token)
     return res.status(201).json({
-      message: "User registered successfully",
-      access_token: token,
+      message: "User created successfully by admin",
+      user: {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        first_name: user.first_name,
+        last_name: user.last_name,
+      },
     });
   } catch (error) {
     console.error("Error during registration:", error);
@@ -68,4 +127,13 @@ export const createToken = (user) => {
     process.env.JWT_SECRET,
     { expiresIn: "1h" }
   );
+};
+
+export const decodeToken = (token) => {
+  try {
+    return jwt.verify(token, process.env.JWT_SECRET);
+  } catch (error) {
+    console.error("Error decoding token:", error);
+    return null;
+  }
 };

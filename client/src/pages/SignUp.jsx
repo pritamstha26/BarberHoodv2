@@ -22,6 +22,7 @@ export default function SignupPage() {
     role: "",
     first_name: "",
     last_name: "",
+    phone_number: "",
   });
   const [selectedRole, setSelectedRole] = useState("client");
   const [error, setError] = useState(null);
@@ -29,7 +30,7 @@ export default function SignupPage() {
 
   const handleRoleChange = (role) => {
     setSelectedRole(role);
-    setError(null); // CHANGE 2: Clear error on role switch
+    setError(null); // Clear error on role switch
   };
 
   const handleChange = (e) => {
@@ -44,7 +45,7 @@ export default function SignupPage() {
     event.preventDefault();
     const form = event.currentTarget;
 
-    // CHANGE 3: Enhanced validation
+    //  Enhanced validation
     if (form.checkValidity() === false) {
       event.stopPropagation();
       setValidated(true);
@@ -52,7 +53,7 @@ export default function SignupPage() {
       return;
     }
 
-    // CHANGE 4: Strict input validation
+    //  input validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     const trimmedEmail = formData.email.trim();
 
@@ -77,12 +78,12 @@ export default function SignupPage() {
     try {
       const response = await api.post("/auth/register", data);
       if (response.status === 201) {
-        // CHANGE 5: Redirect on successful signup
         localStorage.setItem("access_token", response.data.access_token);
+        //  Redirect on successful signup
         navigate("/login");
       }
     } catch (err) {
-      // CHANGE 6: Handle API errors
+      //  Handle API errors
       if (err.response && err.response.data) {
         setError(
           err.response.data.message || "An error occurred. Please try again."
@@ -163,6 +164,20 @@ export default function SignupPage() {
                   />
                   <Form.Control.Feedback type="invalid">
                     Please provide a valid last name.
+                  </Form.Control.Feedback>
+                </Form.Group>
+                <Form.Group className="mb-3" controlId="lastName">
+                  <Form.Label>Contact no.</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="phone_number"
+                    placeholder="Enter your phone number"
+                    value={formData.phone_number}
+                    onChange={handleChange}
+                    required
+                  />
+                  <Form.Control.Feedback type="invalid">
+                    Please provide a valid phone number.
                   </Form.Control.Feedback>
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="email">

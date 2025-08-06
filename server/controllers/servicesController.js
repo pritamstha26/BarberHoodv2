@@ -1,34 +1,84 @@
-import { UsersModel } from "../models/model.js";
 import ServiceModel from "../models/service.js";
+
 import jwt from "jsonwebtoken";
+import { decodeToken } from "./authController.js";
+import { Op } from "sequelize";
 
 export async function addService(req, res) {
   try {
-    const service = new ServiceModel(req.body);
-    await service.save();
+    const token = req.headers.authorization?.split(" ")[1];
+    const decodedToken = decodeToken(token);
+
+    if (!decodedToken) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const { title, service_type } = req.body;
+
+    // 🔍 Check if service already exists with the same title and service_type
+    const existing = await ServiceModel.findOne({
+      where: {
+        title,
+        service_type,
+      },
+    });
+
+    if (existing) {
+      return res.status(409).json({
+        message: "Service with this title and type already exists.",
+      });
+    }
+
+    // Add user_id from token
+    req.body.user_id = decodedToken.id;
+
+    // Create new service
+    const service = await ServiceModel.create(req.body);
+
     res.status(201).json(service);
   } catch (error) {
+    console.error("Error adding service:", error);
     res.status(400).json({ error: error.message });
   }
 }
 
 export async function getAllServices(req, res) {
   try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization header missing or malformed" });
+    }
+
+    const token = authHeader.split(" ")[1];
+    const decodedToken = decodeToken(token);
+    if (!decodedToken) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
     const services = await ServiceModel.findAll({
-      include: [
-        {
-          model: UsersModel,
-          as: "user",
-          attributes: ["id", "first_name", "last_name", "email"],
-        },
+      attributes: [
+        "id",
+        "title",
+        "description",
+        "price",
+        "service_type",
+        "status",
+        "duration",
+        "deadline",
       ],
     });
-    console.log(services);
-    res.status(200).json(services);
+
+    res
+      .status(200)
+      .json({ message: "Services fetched successfully", data: services });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
+
 export async function getServices(req, res) {
   try {
     //getting the token
@@ -47,45 +97,123 @@ export async function getServices(req, res) {
 // Get service by ID
 export async function getServiceById(req, res) {
   try {
-    const id = req.params.id;
-    const service = await ServiceModel.findByPk(id);
+    const decodeToken = jwt.decode(req.headers.authorization.split(" ")[1]);
+
+    if (!decodeToken) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const userId = req.params.id;
+    const service = await ServiceModel.findAll({
+      where: { id: userId },
+      attributes: ["id", "title"],
+    });
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
     }
-    res.json(service);
+
+    res.status(200).json(service);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
 
 // Update service by ID
-export async function updateServiceById(req, res) {
-  try {
-    const id = req.params.id;
-    const [updated] = await ServiceModel.update(req.body, { where: { id } });
+// export async function updateServiceById(req, res) {
+//   try {
+//     const decodeToken = jwt.decode(req.headers.authorization.split(" ")[1]);
+//     if (!decodeToken) {
+//       return res.status(401).json({ message: "Unauthorized" });
+//     }
+//     if (decodeToken.role !== "admin") {
+//       return res.status(403).json({ message: "Modification denied" });
+//     }
+//     const service = await ServiceModel.findByPk(req.params.id);
 
-    if (updated === 0) {
-      return res.status(404).json({ error: "Service not found" });
+//     if (!service) {
+//       return res.status(404).json({ error: "Service not found" });
+//     }
+
+//     // Update service with new data
+//     await service.update(req.body);
+//     res.status(200).json({ message: "Service updated", data: service });
+//   } catch (error) {
+//     res.status(500).json({ error: error.message });
+//   }
+// }
+
+export async function deleteServiceById(req, res) {
+  try {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization header missing or malformed" });
     }
 
-    // Fetch updated service
-    const updatedService = await ServiceModel.findByPk(id);
-    res.json(updatedService);
+    const token = authHeader.split(" ")[1];
+    const decodedToken = decodeToken(token);
+    if (!decodedToken) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+
+    const deleted = await ServiceModel.destroy({
+      where: {
+        id: id,
+      },
+    });
+
+    if (deleted === 0) {
+      return res
+        .status(404)
+        .json({ message: "Service not found or not allowed" });
+    }
+
+    res.status(200).json({ message: "Service deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 }
 
-export async function deleteServiceById(req, res) {
+export async function updateServiceById(req, res) {
   try {
-    const id = req.params.id;
-    const deleted = await ServiceModel.destroy({ where: { id } });
+    const authHeader = req.headers.authorization;
 
-    if (deleted === 0) {
-      return res.status(404).json({ error: "Service not found" });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ message: "Authorization header missing or malformed" });
     }
 
-    res.json({ message: "Service deleted successfully" });
+    const token = authHeader.split(" ")[1];
+    const decodedToken = decodeToken(token);
+    if (!decodedToken) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+
+    const { id } = req.params;
+
+    // Find the service to update
+    const service = await ServiceModel.findOne({
+      where: {
+        id,
+      },
+    });
+
+    if (!service) {
+      return res.status(404).json({ message: "Service not found" });
+    }
+
+    // Update with new data from req.body
+    await service.update(req.body);
+
+    res.status(200).json({
+      message: "Service updated successfully",
+      data: service,
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
