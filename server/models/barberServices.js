@@ -24,7 +24,7 @@ export const BarberService = sequelize.define("BarberService", {
 
 export default BarberService;
 
-(async () => {
-  await BarberService.sync({ alter: true }); // alter: true updates table structure if changed
-  console.log("YourModel table synced.");
-})();
+// (async () => {
+//   await BarberService.sync({ alter: true }); // alter: true updates table structure if changed
+//   console.log("YourModel table synced.");
+// })();

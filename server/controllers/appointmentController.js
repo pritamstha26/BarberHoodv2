@@ -34,64 +34,129 @@ import { decodeToken } from "./authController.js";
 //   }
 // };
 import { AppError } from "../utils/error.js";
+import { Op } from "sequelize";
 
+async function checkAvailability(requestedDate, barberId) {
+  const conflictingAppointment = await AppointmentModel.findOne({
+    where: {
+      barberId,
+      date: requestedDate,
+      status: "accepted",
+    },
+  });
+  return !conflictingAppointment; // true means available
+}
 export const createAppointment = async (req, res) => {
   try {
-    const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-    if (!decodedToken) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    const { serviceId, date } = req.body;
+    // 1. Authenticate user & extract clientId
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Unauthorized" });
+
+    const decodedToken = decodeToken(token); // your JWT decode function here
+    if (!decodedToken) return res.status(401).json({ message: "Unauthorized" });
+
     const clientId = decodedToken.id;
-    // Validate service
+
+    // 2. Extract request body
+    const { serviceId, date } = req.body;
+    if (!serviceId || !date) {
+      return res
+        .status(400)
+        .json({ message: "serviceId and date are required" });
+    }
+
+    const appointmentDate = new Date(date);
+    if (isNaN(appointmentDate)) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    // 3. Verify service exists
     const service = await ServiceModel.findByPk(serviceId);
     if (!service) {
       return res.status(404).json({ message: "Service not found" });
     }
-    // Get all active barbers
+
+    // 4. Get all barbers
     const barbers = await UsersModel.findAll({
-      where: { role: "barber", isActive: true },
+      where: { role: "barber" },
       order: [["id", "ASC"]],
     });
-    if (!barbers || barbers.length === 0) {
+    if (!barbers.length) {
       return res.status(404).json({ message: "No barbers available" });
     }
-    // Extract date and time for availability check
-    const appointmentDate = new Date(date);
-    const dateStr = appointmentDate.toISOString().split("T")[0];
-    const timeStr = appointmentDate.toTimeString().substring(0, 5);
-    // Round-robin pointer (in-memory, for demo)
-    let assignedBarber = null;
-    let startIndex = 0;
+
+    // 5. Find an available barber (round robin)
     if (!global.roundRobinIndex) global.roundRobinIndex = 0;
-    startIndex = global.roundRobinIndex;
+    const startIndex = global.roundRobinIndex;
+
+    let assignedBarber = null;
     for (let i = 0; i < barbers.length; i++) {
       const barber = barbers[(startIndex + i) % barbers.length];
-      const available = await checkAvailability(dateStr, timeStr, barber.id);
+      const available = await checkAvailability(appointmentDate, barber.id);
       if (available) {
         assignedBarber = barber;
         global.roundRobinIndex = (startIndex + i + 1) % barbers.length;
         break;
       }
     }
+
     if (!assignedBarber) {
       return res
         .status(409)
         .json({ message: "No barbers available at the requested time" });
     }
-    // Create appointment
+
+    // 6. Create the appointment
     const appointment = await AppointmentModel.create({
       serviceId,
-      barberId: assignedBarber.id,
       clientId,
-      date,
+      barberId: assignedBarber.id,
+      date: appointmentDate,
       status: "pending",
     });
+
+    // 7. Respond success
     res.status(201).json({
       message: `Appointment created and assigned to barber ${assignedBarber.id}`,
       appointment,
     });
   } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getAllAppointment = async (req, res) => {
+  try {
+    const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
+    if (!decodedToken) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    const appointments = await AppointmentModel.findAll({
+      include: [
+        {
+          model: UsersModel,
+          as: "client", // ✅ must match association
+          attributes: ["id", "first_name", "last_name", "email"],
+        },
+        {
+          model: UsersModel,
+          as: "barber", // ✅ must match association
+          attributes: ["id", "first_name", "last_name", "email"],
+        },
+        {
+          model: ServiceModel,
+          as: "service", // ✅ must match association
+          attributes: ["id", "title", "price"],
+        },
+      ],
+    });
+    console.log({ appointments });
+
+    res.status(200).json(appointments);
+  } catch (error) {
+    console.error("Error while getting appointments:", error.message);
     res.status(500).json({ error: error.message });
   }
 };
@@ -102,27 +167,36 @@ export const getAppointmentById = async (req, res) => {
     if (!decodedToken) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    const { id } = req.params;
-    const appointment = await AppointmentModel.findOne({
-      where: { id, userId: decodedToken.id }, // Assuming req.user is set by authentication middleware
+
+    const appointment = await AppointmentModel.findAll({
+      where: { clientId: decodedToken.id },
       include: [
         {
-          model: ServiceModel,
-          as: "service", // Adjust based on your association
+          model: UsersModel,
+          as: "client",
+          attributes: ["id", "first_name", "last_name", "email"],
         },
         {
           model: UsersModel,
-          as: "user", // Adjust based on your association
+          as: "barber",
+          attributes: ["id", "first_name", "last_name", "email"],
+        },
+        {
+          model: ServiceModel,
+          as: "service",
+          attributes: ["id", "title", "price", "duration", "status"],
         },
       ],
     });
+
     if (!appointment) {
-      return res.status(404).json({ message: "Appointment not found" });
+      return res.status(404).json({ error: "Appointment not found" });
     }
-    return res.status(200).json(appointment);
+
+    res.status(200).json(appointment);
   } catch (error) {
     console.error("Error fetching appointment:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 export const updateAppointment = async (req, res) => {
@@ -248,19 +322,20 @@ export const deleteAppointment = async (req, res) => {
 //   }
 // };
 
-export const getAppointments = async (req, res) => {
-  try {
-    const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-    if (!decodedToken) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
+// export const getAppointments = async (req, res) => {
+//   try {
+//     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
+//     if (!decodedToken) {
+//       return res.status(401).json({ message: "Unauthorized" });
+//     }
 
-    req.body.user_id = decodedToken.id; // Set user_id from decoded token
-    const appointment = new AppointmentModel(req.body);
+//     req.body.user_id = decodedToken.id; // Set user_id from decoded token
+//     const appointment = new AppointmentModel(req.body);
 
-    await appointment.save();
-    res.status(201).json(appointment);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
+//     await appointment.save();
+//     res.status(201).json(appointment);
+//   } catch (error) {
+//     res.status(400).json({ error: error.message });
+//   }
+// };
+//
