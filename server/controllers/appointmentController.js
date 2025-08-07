@@ -2,39 +2,22 @@ import AppointmentModel from "../models/appointmentModel.js";
 import ServiceModel from "../models/service.js";
 import { UsersModel } from "../models/model.js";
 import { decodeToken } from "./authController.js";
-
-// export const createAppointment = async (req, res) => {
-//   try {
-//     const { date, serviceId } = req.body;
-
-//     // Validate serviceId
-//     const service = await ServiceModel.findByPk(serviceId);
-//     if (!service) {
-//       return res.status(404).json({ message: "Service not found" });
-//     }
-//     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-//     if (!decodedToken) {
-//       return res.status(401).json({ message: "Unauthorized" });
-//     }
-//     // Check if the user is authenticated
-
-//     // Create appointment
-//     const appointment = await AppointmentModel.create({
-//       date,
-//       serviceId,
-//     });
-
-//     return res.status(201).json({
-//       message: "Appointment created successfully",
-//       appointment,
-//     });
-//   } catch (error) {
-//     console.error("Error creating appointment:", error);
-//     return res.status(500).json({ message: "Internal server error" });
-//   }
-// };
-import { AppError } from "../utils/error.js";
+import {
+  PriorityQueue,
+  calculateAppointmentPriority,
+  PRIORITY_LEVELS,
+} from "../utils/priorityQueue.js";
 import { Op } from "sequelize";
+
+// Global priority queues for each barber
+const barberQueues = new Map();
+
+function getBarberQueue(barberId) {
+  if (!barberQueues.has(barberId)) {
+    barberQueues.set(barberId, new PriorityQueue());
+  }
+  return barberQueues.get(barberId);
+}
 
 async function checkAvailability(requestedDate, barberId) {
   const conflictingAppointment = await AppointmentModel.findOne({
@@ -44,21 +27,85 @@ async function checkAvailability(requestedDate, barberId) {
       status: "accepted",
     },
   });
-  return !conflictingAppointment; // true means available
+  return !conflictingAppointment;
 }
+
+async function findBestBarberByPriority(appointmentDate, priority) {
+  const barbers = await UsersModel.findAll({
+    where: { role: "barber" },
+    order: [["id", "ASC"]],
+  });
+
+  if (!barbers.length) return null;
+
+  // For high priority appointments, find barber with shortest high-priority queue
+  if (priority >= PRIORITY_LEVELS.VIP) {
+    let bestBarber = null;
+    let minHighPriorityCount = Infinity;
+
+    for (const barber of barbers) {
+      const available = await checkAvailability(appointmentDate, barber.id);
+      if (available) {
+        const queue = getBarberQueue(barber.id);
+        const highPriorityCount = queue
+          .getAll()
+          .filter((apt) => apt.priority >= PRIORITY_LEVELS.VIP).length;
+
+        if (highPriorityCount < minHighPriorityCount) {
+          minHighPriorityCount = highPriorityCount;
+          bestBarber = barber;
+        }
+      }
+    }
+    return bestBarber;
+  }
+
+  // For regular appointments, use round robin
+  if (!global.roundRobinIndex) global.roundRobinIndex = 0;
+  const startIndex = global.roundRobinIndex;
+
+  for (let i = 0; i < barbers.length; i++) {
+    const barber = barbers[(startIndex + i) % barbers.length];
+    const available = await checkAvailability(appointmentDate, barber.id);
+    if (available) {
+      global.roundRobinIndex = (startIndex + i + 1) % barbers.length;
+      return barber;
+    }
+  }
+
+  return null;
+}
+
+async function updateQueuePositions(barberId) {
+  const queue = getBarberQueue(barberId);
+  const appointments = queue.getAll();
+
+  for (let i = 0; i < appointments.length; i++) {
+    await AppointmentModel.update(
+      { queuePosition: i + 1 },
+      { where: { id: appointments[i].id } }
+    );
+  }
+}
+
 export const createAppointment = async (req, res) => {
   try {
-    // 1. Authenticate user & extract clientId
+    // 1. Authenticate user
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) return res.status(401).json({ message: "Unauthorized" });
 
-    const decodedToken = decodeToken(token); // your JWT decode function here
+    const decodedToken = decodeToken(token);
     if (!decodedToken) return res.status(401).json({ message: "Unauthorized" });
 
     const clientId = decodedToken.id;
 
     // 2. Extract request body
-    const { serviceId, date } = req.body;
+    const {
+      serviceId,
+      date,
+      clientType = "regular",
+      isReschedule = false,
+    } = req.body;
     if (!serviceId || !date) {
       return res
         .status(400)
@@ -76,34 +123,24 @@ export const createAppointment = async (req, res) => {
       return res.status(404).json({ message: "Service not found" });
     }
 
-    // 4. Get all barbers
-    const barbers = await UsersModel.findAll({
-      where: { role: "barber" },
-      order: [["id", "ASC"]],
-    });
-    if (!barbers.length) {
-      return res.status(404).json({ message: "No barbers available" });
-    }
+    // 4. Calculate priority
+    const priority = calculateAppointmentPriority(
+      clientType,
+      service.type,
+      date,
+      isReschedule
+    );
 
-    // 5. Find an available barber (round robin)
-    if (!global.roundRobinIndex) global.roundRobinIndex = 0;
-    const startIndex = global.roundRobinIndex;
-
-    let assignedBarber = null;
-    for (let i = 0; i < barbers.length; i++) {
-      const barber = barbers[(startIndex + i) % barbers.length];
-      const available = await checkAvailability(appointmentDate, barber.id);
-      if (available) {
-        assignedBarber = barber;
-        global.roundRobinIndex = (startIndex + i + 1) % barbers.length;
-        break;
-      }
-    }
+    // 5. Find best available barber based on priority
+    const assignedBarber = await findBestBarberByPriority(
+      appointmentDate,
+      priority
+    );
 
     if (!assignedBarber) {
-      return res
-        .status(409)
-        .json({ message: "No barbers available at the requested time" });
+      return res.status(409).json({
+        message: "No barbers available at the requested time",
+      });
     }
 
     // 6. Create the appointment
@@ -113,12 +150,38 @@ export const createAppointment = async (req, res) => {
       barberId: assignedBarber.id,
       date: appointmentDate,
       status: "pending",
+      priority,
+      clientType,
+      isReschedule,
     });
 
-    // 7. Respond success
+    // 7. Add to priority queue
+    const queue = getBarberQueue(assignedBarber.id);
+    queue.enqueue(appointment, priority);
+
+    // 8. Update queue positions
+    await updateQueuePositions(assignedBarber.id);
+
+    // 9. Calculate estimated start time
+    const queuePosition = appointment.queuePosition || queue.size();
+    const avgServiceDuration = 30; // minutes
+    const estimatedStartTime = new Date(
+      Date.now() + (queuePosition - 1) * avgServiceDuration * 60000
+    );
+
+    await AppointmentModel.update(
+      { estimatedStartTime },
+      { where: { id: appointment.id } }
+    );
+
     res.status(201).json({
-      message: `Appointment created and assigned to barber ${assignedBarber.id}`,
-      appointment,
+      message: `Priority appointment created and assigned to barber ${assignedBarber.id}`,
+      appointment: {
+        ...appointment.toJSON(),
+        queuePosition,
+        estimatedStartTime,
+        priority,
+      },
     });
   } catch (error) {
     console.error(error);
@@ -126,50 +189,21 @@ export const createAppointment = async (req, res) => {
   }
 };
 
-export const getAllAppointment = async (req, res) => {
+// Get appointments ordered by priority
+export const getAppointmentsByPriority = async (req, res) => {
   try {
     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
     if (!decodedToken) {
       return res.status(401).json({ message: "Unauthorized" });
     }
+
+    const { barberId } = req.params;
 
     const appointments = await AppointmentModel.findAll({
-      include: [
-        {
-          model: UsersModel,
-          as: "client", // ✅ must match association
-          attributes: ["id", "first_name", "last_name", "email"],
-        },
-        {
-          model: UsersModel,
-          as: "barber", // ✅ must match association
-          attributes: ["id", "first_name", "last_name", "email"],
-        },
-        {
-          model: ServiceModel,
-          as: "service", // ✅ must match association
-          attributes: ["id", "title", "price"],
-        },
-      ],
-    });
-    console.log({ appointments });
-
-    res.status(200).json(appointments);
-  } catch (error) {
-    console.error("Error while getting appointments:", error.message);
-    res.status(500).json({ error: error.message });
-  }
-};
-
-export const getAppointmentById = async (req, res) => {
-  try {
-    const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-    if (!decodedToken) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-
-    const appointment = await AppointmentModel.findAll({
-      where: { clientId: decodedToken.id },
+      where: {
+        barberId: barberId || undefined,
+        status: ["pending", "accepted"],
+      },
       include: [
         {
           model: UsersModel,
@@ -184,158 +218,167 @@ export const getAppointmentById = async (req, res) => {
         {
           model: ServiceModel,
           as: "service",
-          attributes: ["id", "title", "price", "duration", "status"],
+          attributes: ["id", "title", "price", "duration"],
         },
+      ],
+      order: [
+        ["priority", "DESC"],
+        ["date", "ASC"],
       ],
     });
 
-    if (!appointment) {
-      return res.status(404).json({ error: "Appointment not found" });
-    }
-
-    res.status(200).json(appointment);
+    res.status(200).json({
+      appointments,
+      queueInfo: {
+        totalInQueue: appointments.length,
+        highPriority: appointments.filter(
+          (apt) => apt.priority >= PRIORITY_LEVELS.VIP
+        ).length,
+        regular: appointments.filter(
+          (apt) => apt.priority < PRIORITY_LEVELS.VIP
+        ).length,
+      },
+    });
   } catch (error) {
-    console.error("Error fetching appointment:", error);
-    res.status(500).json({ error: "Internal server error" });
+    console.error("Error fetching priority appointments:", error);
+    res.status(500).json({ error: error.message });
   }
 };
-export const updateAppointment = async (req, res) => {
+
+// Process next appointment in queue
+export const processNextAppointment = async (req, res) => {
   try {
     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-    if (!decodedToken) {
-      return res.status(401).json({ message: "Unauthorized" });
-    }
-    const { id } = req.params;
-    const { date, serviceId } = req.body;
-
-    // Validate serviceId
-    const service = await ServiceModel.findByPk(serviceId);
-    if (!service) {
-      return res.status(404).json({ message: "Service not found" });
+    if (!decodedToken || decodedToken.role !== "barber") {
+      return res
+        .status(401)
+        .json({ message: "Unauthorized - Barber access required" });
     }
 
-    // Update appointment
-    const [updated] = await AppointmentModel.update(
-      { date, serviceId },
-      { where: { id, userId: decodedToken.id } } // Assuming req.user is set by authentication middleware
+    const barberId = decodedToken.id;
+    const queue = getBarberQueue(barberId);
+
+    if (queue.isEmpty()) {
+      return res.status(200).json({ message: "No appointments in queue" });
+    }
+
+    const nextAppointmentItem = queue.dequeue();
+    const appointment = nextAppointmentItem.appointment;
+
+    // Update appointment status to accepted
+    await AppointmentModel.update(
+      { status: "accepted", queuePosition: null },
+      { where: { id: appointment.id } }
     );
 
-    if (updated) {
-      return res
-        .status(200)
-        .json({ message: "Appointment updated successfully" });
-    }
+    // Update queue positions for remaining appointments
+    await updateQueuePositions(barberId);
 
-    return res.status(404).json({ message: "Appointment not found" });
+    res.status(200).json({
+      message: "Next appointment processed",
+      appointment,
+      remainingInQueue: queue.size(),
+    });
   } catch (error) {
-    console.error("Error updating appointment:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error processing next appointment:", error);
+    res.status(500).json({ error: error.message });
   }
 };
-export const deleteAppointment = async (req, res) => {
+
+// Update appointment priority
+export const updateAppointmentPriority = async (req, res) => {
   try {
-    const { id } = req.params;
     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
     if (!decodedToken) {
       return res.status(401).json({ message: "Unauthorized" });
     }
-    // Delete appointment
-    const deleted = await AppointmentModel.destroy({
-      where: { id, userId: decodedToken.id }, // Assuming req.user is set by authentication middleware
+
+    const { id } = req.params;
+    const { clientType, isEmergency = false } = req.body;
+
+    const appointment = await AppointmentModel.findByPk(id, {
+      include: [{ model: ServiceModel, as: "service" }],
     });
 
-    if (deleted) {
-      return res
-        .status(200)
-        .json({ message: "Appointment deleted successfully" });
+    if (!appointment) {
+      return res.status(404).json({ message: "Appointment not found" });
     }
 
-    return res.status(404).json({ message: "Appointment not found" });
+    // Recalculate priority
+    const newClientType = isEmergency ? "emergency" : clientType;
+    const newPriority = calculateAppointmentPriority(
+      newClientType,
+      appointment.service.type,
+      appointment.date,
+      appointment.isReschedule
+    );
+
+    // Update appointment
+    await AppointmentModel.update(
+      {
+        priority: newPriority,
+        clientType: newClientType,
+      },
+      { where: { id } }
+    );
+
+    // Update queue
+    const queue = getBarberQueue(appointment.barberId);
+    // Remove old appointment from queue and re-add with new priority
+    const updatedAppointment = await AppointmentModel.findByPk(id);
+    queue.enqueue(updatedAppointment, newPriority);
+
+    await updateQueuePositions(appointment.barberId);
+
+    res.status(200).json({
+      message: "Appointment priority updated",
+      appointment: updatedAppointment,
+      newPriority,
+    });
   } catch (error) {
-    console.error("Error deleting appointment:", error);
-    return res.status(500).json({ message: "Internal server error" });
+    console.error("Error updating appointment priority:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
-// export const getAppointments = async (req, res) => {
-//   try {
-//     const authHeader = req.headers.authorization;
-//     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-//       return res
-//         .status(401)
-//         .json({ message: "Unauthorized: Token missing or malformed" });
-//     }
+// Get queue status for a barber
+export const getQueueStatus = async (req, res) => {
+  try {
+    const { barberId } = req.params;
+    const queue = getBarberQueue(barberId);
 
-//     const token = authHeader.split(" ")[1];
-//     const decodedToken = decodeToken(token);
+    const queuedAppointments = await AppointmentModel.findAll({
+      where: {
+        barberId,
+        status: "pending",
+        queuePosition: { [Op.not]: null },
+      },
+      include: [
+        {
+          model: UsersModel,
+          as: "client",
+          attributes: ["first_name", "last_name"],
+        },
+        {
+          model: ServiceModel,
+          as: "service",
+          attributes: ["title", "duration"],
+        },
+      ],
+      order: [["queuePosition", "ASC"]],
+    });
 
-//     if (!decodedToken) {
-//       return res.status(401).json({ message: "Unauthorized: Invalid token" });
-//     }
-
-//     // Admin logic: Return all appointments
-//     if (decodedToken.role === "admin") {
-//       const appointments = await AppointmentModel.findAll({
-//         include: [
-//           {
-//             model: ServiceModel,
-//             as: "service",
-//             include: [
-//               {
-//                 model: UsersModel,
-//                 as: "user",
-//                 attributes: ["id", "first_name", "last_name", "email"],
-//               },
-//             ],
-//           },
-//         ],
-//       });
-
-//       return res.status(200).json(appointments);
-//     }
-
-//     const appointments = await AppointmentModel.findAll({
-//       where: { serviceId: service.id },
-//       include: [
-//         {
-//           model: ServiceModel,
-//           as: "service",
-//         },
-//       ],
-//     });
-
-//     return res.status(200).json(appointments);
-//   } catch (error) {
-//     console.error("Error fetching appointments:", error);
-//     return res.status(500).json({ message: "Internal server error" });
-//   }
-// };
-
-// export const getAppointments = async (req, res) => {
-//   try {
-//     const appointments = await AppointmentModel.findAll();
-//     console.log("hello");
-//     res.json(appointments);
-//   } catch (err) {
-//     console.error(err);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-// export const getAppointments = async (req, res) => {
-//   try {
-//     const decodedToken = decodeToken(req.headers.authorization.split(" ")[1]);
-//     if (!decodedToken) {
-//       return res.status(401).json({ message: "Unauthorized" });
-//     }
-
-//     req.body.user_id = decodedToken.id; // Set user_id from decoded token
-//     const appointment = new AppointmentModel(req.body);
-
-//     await appointment.save();
-//     res.status(201).json(appointment);
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-//
+    res.status(200).json({
+      barberId,
+      queueSize: queue.size(),
+      appointments: queuedAppointments,
+      estimatedTotalTime: queuedAppointments.reduce(
+        (total, apt) => total + (apt.service.duration || 30),
+        0
+      ),
+    });
+  } catch (error) {
+    console.error("Error getting queue status:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
