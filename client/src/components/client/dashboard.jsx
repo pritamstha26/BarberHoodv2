@@ -1,36 +1,41 @@
-import React, { useState, useEffect } from "react";
-import {
-  Container,
-  Row,
-  Col,
-  Card,
-  Table,
-  Badge,
-  Button,
-  Alert,
-} from "react-bootstrap";
+import React, { useState, useEffect } from 'react';
+import { Container, Row, Col, Card, Table, Badge, Button, Alert } from 'react-bootstrap';
 import {
   FaCalendarAlt,
   FaClock,
   FaCheckCircle,
   FaTimesCircle,
   FaExclamationCircle,
-} from "react-icons/fa";
-import { ImCross } from "react-icons/im";
-import api from "../../apis/api";
+  FaUserAlt,
+  FaCalendar,
+  FaList
+} from 'react-icons/fa';
+import { ImCross } from 'react-icons/im';
+import api from '../../apis/api';
+import { Spinner } from 'react-bootstrap';
+import { jwtDecode } from 'jwt-decode';
 
 const Dashboard = () => {
   const [allServiceRequests, setAllServiceRequests] = useState([]);
+  const [appointments, setAppointments] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [alertVariant, setAlertVariant] = useState('success');
 
   const getStatusIcon = (status) => {
     switch (status) {
-      case "Completed":
+      case 'Completed':
         return <FaCheckCircle className="text-success me-2" />;
-      case "In Progress":
+      case 'confirmed':
+        return <FaCheckCircle className="text-success me-2" />;
+      case 'Confirmed':
+        return <FaCheckCircle className="text-success me-2" />;
+      case 'In Progress':
         return <FaClock className="text-primary me-2" />;
-      case "Pending":
+      case 'Pending':
         return <FaExclamationCircle className="text-warning me-2" />;
-      case "Cancelled":
+      case 'Cancelled':
         return <FaTimesCircle className="text-danger me-2" />;
       default:
         return <FaClock className="text-secondary me-2" />;
@@ -39,33 +44,35 @@ const Dashboard = () => {
 
   const getStatusVariant = (status) => {
     switch (status) {
-      case "completed":
-        return "success";
-      case "in_progress":
-        return "primary";
-      case "pending":
-        return "warning";
-      case "cancelled":
-        return "danger";
+      case 'completed':
+      case 'accepted':
+        return 'success';
+      case 'confirmed':
+        return 'success';
+      case 'in_progress':
+        return 'primary';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+        return 'danger';
       default:
-        return "secondary";
+        return 'secondary';
     }
   };
 
   const stats = {
     total: allServiceRequests.length,
-    completed: allServiceRequests.filter((r) => r.status === "completed")
-      .length,
-    terminated: allServiceRequests.filter((r) => r.status === "cancelled")
-      .length,
-    pending: allServiceRequests.filter((r) => r.status === "pending").length,
+    completed: allServiceRequests.filter((r) => r.status === 'completed').length,
+    terminated: allServiceRequests.filter((r) => r.status === 'cancelled').length,
+    pending: allServiceRequests.filter((r) => r.status === 'pending').length,
+    appointments: appointments.length
   };
 
   const handleStatusChange = async (id, newStatus) => {
     try {
       const response = await api.put(`/services/${id}`, { status: newStatus });
 
-      window.confirm("Are you sure you want to cancel the request?");
+      window.confirm('Are you sure you want to cancel the request?');
       if (response.status === 200) {
         setAllServiceRequests((prevRequests) =>
           prevRequests.map((request) =>
@@ -73,36 +80,100 @@ const Dashboard = () => {
           )
         );
       } else {
-        console.error("Failed to update status:", response.data);
-        alert("Failed to update status");
+        console.error('Failed to update status:', response.data);
+        alert('Failed to update status');
       }
     } catch (error) {
-      console.error("Error updating status:", error);
-      alert("Error updating status");
+      console.error('Error updating status:', error);
+      alert('Error updating status');
     }
   };
 
   const fetchServiceRequests = async () => {
     try {
-      const response = await api.get("/services");
+      const response = await api.get('/services');
       if (response.status === 200) {
         setAllServiceRequests(response.data);
       }
     } catch (error) {
-      console.error("Error fetching service requests:", error);
+      console.error('Error fetching service requests:', error);
+    }
+  };
+
+  const showAlertMessage = (message, variant) => {
+    setAlertMessage(message);
+    setAlertVariant(variant);
+    setShowAlert(true);
+    setTimeout(() => setShowAlert(false), 5000);
+  };
+
+  const fetchAppointments = async () => {
+    try {
+      setIsLoading(true);
+      const token = localStorage.getItem('access_token');
+      if (!token) return;
+
+      const decoded = jwtDecode(token);
+      const userId = decoded.id;
+
+      // Get appointments for the logged-in client
+      const response = await api.get(`/appointments/client/${userId}`);
+      if (response.status === 200) {
+        setAppointments(response.data.data || []);
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      showAlertMessage('Failed to load appointments', 'danger');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCancelAppointment = async (appointmentId) => {
+    try {
+      if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+        return;
+      }
+
+      setIsLoading(true);
+      const token = localStorage.getItem('access_token');
+
+      const response = await api.put(
+        `/appointments/${appointmentId}/cancel`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      if (response.status === 200) {
+        showAlertMessage('Appointment cancelled successfully!', 'warning');
+        // Update appointments list
+        await fetchAppointments();
+      } else {
+        showAlertMessage('Failed to cancel appointment', 'danger');
+      }
+    } catch (error) {
+      console.error('Error cancelling appointment:', error);
+      showAlertMessage(`Error: ${error.response?.data?.message || error.message}`, 'danger');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const appointmentLength = allServiceRequests.length;
   useEffect(() => {
     fetchServiceRequests();
+    fetchAppointments();
   }, []);
   return (
     <Container fluid className="p-4">
       <div className="mb-4">
         <h1 className="display-5 fw-bold text-dark mb-2">Dashboard</h1>
         <p className="text-muted">
-          Welcome back! Here's an overview of your service requests.
+          Welcome back! Here's an overview of your appointments and service requests.
         </p>
       </div>
 
@@ -113,12 +184,8 @@ const Dashboard = () => {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <Card.Text className="text-muted mb-1 small">
-                    Total Requests
-                  </Card.Text>
-                  <Card.Title className="display-6 fw-bold mb-0">
-                    {stats.total}
-                  </Card.Title>
+                  <Card.Text className="text-muted mb-1 small">Total Requests</Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0">{stats.total}</Card.Title>
                 </div>
                 <div className="bg-primary bg-opacity-10 p-3 rounded">
                   <FaCalendarAlt className="text-primary fs-4" />
@@ -133,9 +200,7 @@ const Dashboard = () => {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <Card.Text className="text-muted mb-1 small">
-                    Completed
-                  </Card.Text>
+                  <Card.Text className="text-muted mb-1 small">Completed</Card.Text>
                   <Card.Title className="display-6 fw-bold mb-0 text-success">
                     {stats.completed}
                   </Card.Title>
@@ -153,9 +218,7 @@ const Dashboard = () => {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <Card.Text className="text-muted mb-1 small">
-                    Terminated
-                  </Card.Text>
+                  <Card.Text className="text-muted mb-1 small">Terminated</Card.Text>
                   <Card.Title className="display-6 fw-bold mb-0 text-primary">
                     {stats.terminated}
                   </Card.Title>
@@ -173,9 +236,7 @@ const Dashboard = () => {
             <Card.Body>
               <div className="d-flex justify-content-between align-items-center">
                 <div>
-                  <Card.Text className="text-muted mb-1 small">
-                    Pending
-                  </Card.Text>
+                  <Card.Text className="text-muted mb-1 small">Pending</Card.Text>
                   <Card.Title className="display-6 fw-bold mb-0 text-warning">
                     {stats.pending}
                   </Card.Title>
@@ -187,97 +248,136 @@ const Dashboard = () => {
             </Card.Body>
           </Card>
         </Col>
+
+        <Col md={3}>
+          <Card className="h-100 border-0 shadow-sm">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <Card.Text className="text-muted mb-1 small">Appointments</Card.Text>
+                  <Card.Title className="display-6 fw-bold mb-0 text-info">
+                    {stats.appointments}
+                  </Card.Title>
+                </div>
+                <div className="bg-info bg-opacity-10 p-3 rounded">
+                  <FaCalendar className="text-info fs-4" />
+                </div>
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
-      {/* Requests Table */}
-      <Card className="border-0 shadow-sm">
-        <Card.Header className="bg-white border-bottom">
-          <Card.Title className="mb-0 h5">Recent Service Requests</Card.Title>
+      {/* Appointments Card */}
+      {/* Alert message */}
+      {showAlert && (
+        <div
+          className={`alert alert-${alertVariant} alert-dismissible fade show mb-4`}
+          role="alert"
+        >
+          {alertMessage}
+          <button
+            type="button"
+            className="btn-close"
+            onClick={() => setShowAlert(false)}
+            aria-label="Close"
+          ></button>
+        </div>
+      )}
+
+      <Card className="border-0 shadow-sm mb-4">
+        <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
+          <Card.Title className="mb-0 h5">
+            <FaCalendar className="me-2 text-primary" /> Your Appointments
+          </Card.Title>
+          <Button
+            variant="outline-primary"
+            size="sm"
+            onClick={() => fetchAppointments()}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Loading...
+              </>
+            ) : (
+              'Refresh'
+            )}
+          </Button>
         </Card.Header>
-        <Card.Body className="p-0">
-          <Table responsive hover className="mb-0">
-            <thead className="table-light">
-              <tr>
-                <th className="px-4 py-3">SN</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Title</th>
-                <th className="px-4 py-3">Service Type</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Deadline </th>
-                <th className="px-4 py-3">Contact Method</th>
-                <th className="px-4 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {allServiceRequests.map((request, appointmentLength) => (
-                <tr key={request.id}>
-                  <td className="px-4 py-3">
-                    <div className="d-flex align-items-center">
-                      <span className="fw-medium">{appointmentLength + 1}</span>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge bg={getStatusVariant(request.status)}>
-                      {request.status}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">
-                    <div>
-                      <div className="fw-medium">{request.title}</div>
-                      <small className="text-muted">
-                        {request.description}
-                      </small>
-                    </div>
-                  </td>
-                  <td className="px-4 py-3">
-                    <Badge bg={getStatusVariant("")}>
-                      {request.service_type}
-                    </Badge>
-                  </td>
-                  <td className="px-4 py-3">{request.price}</td>
-                  <td className="px-4 py-3">
-                    {new Date(request.deadline).toLocaleString("en-US", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: true,
-                    })}
-                  </td>
-                  <td className="px-4 py-3">{request.prefer_contact_method}</td>
-                  <td className="px-4 py-3">
-                    <Button
-                      className={`${
-                        request.status === "cancelled" ||
-                        request.status === "completed"
-                          ? " bg-secondary-subtle btn-outline-dark "
-                          : " bg-white btn-outline-danger "
-                      }`}
-                      onClick={() =>
-                        handleStatusChange(request.id, "cancelled")
-                      }
-                      disabled={
-                        request.status === "cancelled" ||
-                        request.status === "completed"
-                      }
-                    >
-                      <ImCross
-                        color={
-                          request.status === "cancelled" ||
-                          request.status === "completed"
-                            ? "black"
-                            : "red"
+        <Card.Body>
+          {appointments && appointments.length > 0 ? (
+            <Row>
+              {appointments.map((appointment) => (
+                <Col md={4} key={appointment.id} className="mb-3">
+                  <Card className="h-100 border-0 shadow-sm">
+                    <Card.Header className="bg-light">
+                      <h6 className="mb-0 text-primary">{appointment.service_name}</h6>
+                    </Card.Header>
+                    <Card.Body>
+                      <div className="d-flex align-items-center mb-3">
+                        <div className="bg-primary bg-opacity-10 p-3 rounded me-3">
+                          <FaUserAlt className="text-primary fs-4" />
+                        </div>
+                        <div>
+                          <h5 className="mb-0">
+                            {appointment.barber_name || 'No Barber Assigned'}
+                          </h5>
+                          <p className="text-muted small mb-0">Your Barber</p>
+                        </div>
+                      </div>
+                      <div className="mb-2">
+                        <strong>Date & Time:</strong>{' '}
+                        {new Date(appointment.date).toLocaleString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          hour12: true
+                        })}
+                      </div>
+                      <div className="mb-2">
+                        <strong>Duration:</strong> {appointment.duration} minutes
+                      </div>
+                      <div className="mb-2">
+                        <strong>Price:</strong> Rs. {appointment.price}
+                      </div>
+                      <div className="mb-2">
+                        <strong>Status:</strong>{' '}
+                        <Badge bg={getStatusVariant(appointment.status)}>
+                          {appointment.status}
+                        </Badge>
+                      </div>
+                    </Card.Body>
+                    <Card.Footer className="bg-white border-top">
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        className="w-100"
+                        disabled={
+                          appointment.status === 'completed' || appointment.status === 'cancelled'
                         }
-                      />
-                    </Button>
-                  </td>
-                </tr>
+                        onClick={() => handleCancelAppointment(appointment.id)}
+                      >
+                        Cancel Appointment
+                      </Button>
+                    </Card.Footer>
+                  </Card>
+                </Col>
               ))}
-            </tbody>
-          </Table>
+            </Row>
+          ) : (
+            <Alert variant="info">
+              You have no scheduled appointments. Visit the Nearby Barbers section to book an
+              appointment.
+            </Alert>
+          )}
         </Card.Body>
       </Card>
+
+      {/* Requests Table */}
     </Container>
   );
 };

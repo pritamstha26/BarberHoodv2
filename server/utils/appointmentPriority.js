@@ -1,10 +1,4 @@
-export const PRIORITY_LEVELS = {
-  EMERGENCY: 100,
-  VIP: 80,
-  PREMIUM: 60,
-  REGULAR: 40,
-  WALK_IN: 20,
-};
+import { PRIORITY_LEVELS } from './priorityQueue.js';
 
 export function calculateAppointmentPriority(
   clientType,
@@ -16,16 +10,16 @@ export function calculateAppointmentPriority(
 
   // Base priority from client type
   switch (clientType) {
-    case "vip":
+    case 'vip':
       priority = PRIORITY_LEVELS.VIP;
       break;
-    case "premium":
+    case 'premium':
       priority = PRIORITY_LEVELS.PREMIUM;
       break;
-    case "emergency":
+    case 'emergency':
       priority = PRIORITY_LEVELS.EMERGENCY;
       break;
-    case "walk_in":
+    case 'walk_in':
       priority = PRIORITY_LEVELS.WALK_IN;
       break;
     default:
@@ -33,7 +27,7 @@ export function calculateAppointmentPriority(
   }
 
   // Adjust priority based on service type
-  if (serviceType === "premium_service") {
+  if (serviceType === 'premium_service') {
     priority += 10;
   }
 

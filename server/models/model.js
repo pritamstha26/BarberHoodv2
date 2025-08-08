@@ -1,37 +1,49 @@
-import sequelize from "../config/db.js";
-import { DataTypes } from "sequelize";
+import sequelize from '../config/db.js';
+import { DataTypes } from 'sequelize';
 
-const UsersModel = sequelize.define("UsersModel", {
+const UsersModel = sequelize.define('UsersModel', {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
-    autoIncrement: true,
+    autoIncrement: true
   },
   first_name: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false
   },
   last_name: {
     type: DataTypes.STRING,
-    allowNull: false,
+    allowNull: false
   },
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true,
+    unique: true
   },
   password: {
     type: DataTypes.TEXT,
-    allowNull: false,
+    allowNull: false
   },
   phone_number: {
     type: DataTypes.BIGINT,
-    allowNull: true,
+    allowNull: true
+  },
+  latitude: {
+    type: DataTypes.FLOAT(10, 6),
+    allowNull: true
+  },
+  longitude: {
+    type: DataTypes.FLOAT(10, 6),
+    allowNull: true
+  },
+  location_name: {
+    type: DataTypes.STRING,
+    allowNull: true
   },
   role: {
-    type: DataTypes.ENUM("client", "admin", "barber"),
-    defaultValue: "client",
-  },
+    type: DataTypes.ENUM('client', 'admin', 'barber'),
+    defaultValue: 'client'
+  }
 });
 
 export { UsersModel };

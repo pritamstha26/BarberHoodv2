@@ -48,6 +48,17 @@ export class PriorityQueue {
   getAll() {
     return this.queue.map((item) => item.appointment);
   }
+
+  // Clear all items from the queue
+  clear() {
+    this.queue = [];
+  }
 }
 
-// controllers/appointmentController.js (Updated with Priority Queue)
+export const PRIORITY_LEVELS = {
+  EMERGENCY: 100,
+  VIP: 80,
+  PREMIUM: 60,
+  REGULAR: 40,
+  WALK_IN: 20
+};

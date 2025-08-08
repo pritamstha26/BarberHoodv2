@@ -1,45 +1,44 @@
-import { Edit2, Plus, Trash2, Search } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Table, Button, Badge, Modal, Form, InputGroup } from "react-bootstrap";
+import { Edit2, Plus, Trash2, Search } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Table, Button, Badge, Modal, Form, InputGroup } from 'react-bootstrap';
 
-import "./admin-panel.css";
-import { useAppointments } from "../../context/Appointment_context";
-import api from "../../apis/api";
-import axios from "axios";
-import { jwtDecode } from "jwt-decode";
+import './admin-panel.css';
+import { useAppointments } from '../../context/Appointment_context';
+import api from '../../apis/api';
+import axios from 'axios';
 export const BarberList = () => {
   const { list, barberList, setList } = useAppointments();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState(null);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    password: "",
-    phone_number: "",
-    role: "barber",
+    first_name: '',
+    last_name: '',
+    email: '',
+    password: '',
+    phone_number: '',
+    role: 'barber'
   });
 
   const handleAddBarber = async () => {
     // Add barber logic would go here
     try {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem('access_token');
 
       const addData = { ...formData };
 
       const response = await api.post(`/auth/register`, addData, {
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
       if (response.status === 201) {
-        alert("successfully updated");
+        alert('successfully updated');
         window.location.reload();
       }
     } catch (error) {
-      console.error("An error occurred while adding the barber:", error);
+      console.error('An error occurred while adding the barber:', error);
     }
 
     setShowAddModal(false);
@@ -52,7 +51,7 @@ export const BarberList = () => {
 
   const handleUpdateBarber = async (barb) => {
     try {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem('access_token');
 
       const updatedData = { ...formData };
 
@@ -63,16 +62,16 @@ export const BarberList = () => {
 
       const response = await api.put(`/users/${barb.id}`, updatedData, {
         headers: {
-          Authorization: `Bearer ${token}`,
-        },
+          Authorization: `Bearer ${token}`
+        }
       });
       if (response.status === 200) {
-        alert("successfully updated");
+        alert('successfully updated');
 
         window.location.reload();
       }
     } catch (error) {
-      console.error("An error occurred while updating the barber:", error);
+      console.error('An error occurred while updating the barber:', error);
     }
     setShowEditModal(false);
   };
@@ -85,37 +84,34 @@ export const BarberList = () => {
   );
 
   const handleDeleteBarber = async (b_id) => {
-    if (!window.confirm("Are you sure you want to delete this barber?")) return;
+    if (!window.confirm('Are you sure you want to delete this barber?')) return;
 
     try {
-      const token = localStorage.getItem("access_token");
+      const token = localStorage.getItem('access_token');
 
-      const response = await axios.delete(
-        `http://localhost:5000/api/users/delete/${b_id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+      const response = await axios.delete(`http://localhost:6969/api/users/delete/${b_id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`
         }
-      );
+      });
 
       if (response.status === 200) {
         // Remove barber from list after successful deletion
         setList((prevList) => prevList.filter((barber) => barber.id !== b_id));
-        alert("Barber deleted successfully");
+        alert('Barber deleted successfully');
       } else {
-        alert("Failed to delete barber");
+        alert('Failed to delete barber');
       }
     } catch (error) {
       if (
         error.response &&
         error.response.status === 400 &&
-        error.response.data.message.includes("appointments")
+        error.response.data.message.includes('appointments')
       ) {
-        alert("Cannot delete a barber who has existing appointments.");
+        alert('Cannot delete a barber who has existing appointments.');
       } else {
-        console.error("An error occurred while deleting the barber:", error);
-        alert("An unexpected error occurred while deleting the barber.");
+        console.error('An error occurred while deleting the barber:', error);
+        alert('An unexpected error occurred while deleting the barber.');
       }
     }
   };
@@ -124,7 +120,7 @@ export const BarberList = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value,
+      [name]: value
     }));
   };
   const num = 1;
@@ -134,8 +130,8 @@ export const BarberList = () => {
         first_name: selectedBarber.first_name,
         last_name: selectedBarber.last_name,
         email: selectedBarber.email,
-        password: "",
-        phone_number: selectedBarber.phone_number,
+        password: '',
+        phone_number: selectedBarber.phone_number
       });
     }
   }, [selectedBarber]);
@@ -341,10 +337,7 @@ export const BarberList = () => {
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            onClick={() => handleUpdateBarber(selectedBarber)}
-          >
+          <Button variant="primary" onClick={() => handleUpdateBarber(selectedBarber)}>
             Update Barber
           </Button>
         </Modal.Footer>

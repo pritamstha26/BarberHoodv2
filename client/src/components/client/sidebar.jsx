@@ -1,34 +1,34 @@
-import React, { useEffect } from "react";
-import { Nav, Button } from "react-bootstrap";
-import { useNavigate } from "react-router-dom";
-import { FaHome, FaCog, FaSignOutAlt, FaFileAlt, FaUser } from "react-icons/fa";
-import { jwtDecode } from "jwt-decode";
+import React, { useEffect } from 'react';
+import { Nav, Button } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { FaHome, FaCog, FaSignOutAlt, FaUser, FaMapMarkerAlt } from 'react-icons/fa';
+import { jwtDecode } from 'jwt-decode';
 
 const Sidebar = ({ activeTab, setActiveTab }) => {
   const navigate = useNavigate();
   const menuItems = [
-    { id: "dashboard", label: "Dashboard", icon: FaHome },
-    { id: "request-service", label: "Request Service", icon: FaFileAlt },
-    { id: "settings", label: "Settings", icon: FaCog },
+    { id: 'dashboard', label: 'Dashboard', icon: FaHome },
+    { id: 'nearby-barbers', label: 'Nearby Barbers', icon: FaMapMarkerAlt },
+    { id: 'settings', label: 'Settings', icon: FaCog }
   ];
 
   const handleLogout = () => {
-    localStorage.removeItem("access_token");
-    navigate("/login");
+    localStorage.removeItem('access_token');
+    navigate('/login');
   };
 
   const sidebarStyle = {
-    width: "350px",
-    height: "100vh",
-    position: "fixed",
+    width: '350px',
+    height: '100vh',
+    position: 'fixed',
     left: 0,
     top: 0,
     zIndex: 1000,
-    backgroundColor: "#ffffff",
-    boxShadow: "0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)",
+    backgroundColor: '#ffffff',
+    boxShadow: '0 0.125rem 0.25rem rgba(0, 0, 0, 0.075)'
   };
 
-  const localStorageData = localStorage.getItem("access_token");
+  const localStorageData = localStorage.getItem('access_token');
   const decodeToken = jwtDecode(localStorageData);
 
   return (
@@ -38,7 +38,7 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
         <div className="d-flex align-items-center">
           <div
             className="rounded-circle bg-primary d-flex align-items-center justify-content-center me-3"
-            style={{ width: "40px", height: "40px" }}
+            style={{ width: '40px', height: '40px' }}
           >
             <FaUser className="text-white" />
           </div>
@@ -58,16 +58,14 @@ const Sidebar = ({ activeTab, setActiveTab }) => {
           return (
             <Nav.Item key={item.id} className="mb-2">
               <Button
-                variant={activeTab === item.id ? "primary" : "outline-light"}
+                variant={activeTab === item.id ? 'primary' : 'outline-light'}
                 className={`w-100 d-flex align-items-center text-start p-3 border-0 ${
-                  activeTab === item.id ? "" : "text-dark"
+                  activeTab === item.id ? '' : 'text-dark'
                 }`}
                 style={{
-                  borderLeft:
-                    activeTab === item.id ? "4px solid #0d6efd" : "none",
-                  borderRadius: "8px",
-                  backgroundColor:
-                    activeTab === item.id ? "#0d6efd" : "transparent",
+                  borderLeft: activeTab === item.id ? '4px solid #0d6efd' : 'none',
+                  borderRadius: '8px',
+                  backgroundColor: activeTab === item.id ? '#0d6efd' : 'transparent'
                 }}
                 onClick={() => setActiveTab(item.id)}
               >

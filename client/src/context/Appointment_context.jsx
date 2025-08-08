@@ -1,5 +1,5 @@
-import axios from "axios";
-import React, { useContext, useEffect, useState, createContext } from "react";
+import axios from 'axios';
+import React, { useContext, useEffect, useState, createContext } from 'react';
 
 const AppointmentContext = createContext();
 
@@ -7,35 +7,29 @@ const AppointmentContext = createContext();
 export function useAppointments() {
   const context = useContext(AppointmentContext);
   if (!context) {
-    throw new Error(
-      "useAppointments must be used within an AppointmentProvider"
-    );
+    throw new Error('useAppointments must be used within an AppointmentProvider');
   }
   return context;
 }
 export default function AppointmentProvider({ children }) {
   const [list, setList] = useState([]);
-  const [searchTerm, setSearchTerm] = useState("");
+  const [searchTerm, setSearchTerm] = useState('');
   const barberList = list.filter((user) => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    return (
-      user.role === "barber" && fullName.includes(searchTerm.toLowerCase())
-    );
+    return user.role === 'barber' && fullName.includes(searchTerm.toLowerCase());
   });
   const clientList = list.filter((user) => {
     const fullName = `${user.first_name} ${user.last_name}`.toLowerCase();
-    return (
-      user.role === "client" && fullName.includes(searchTerm.toLowerCase())
-    );
+    return user.role === 'client' && fullName.includes(searchTerm.toLowerCase());
   });
 
   useEffect(() => {
     const apiData = async () => {
       try {
-        const getData = await axios.get("http://localhost:5000/api/users/all");
+        const getData = await axios.get('http://localhost:6969/api/users/all');
         setList(getData.data.data);
       } catch (error) {
-        console.log("An error occurred");
+        console.log('An error occurred');
       }
     };
     apiData();
@@ -45,11 +39,7 @@ export default function AppointmentProvider({ children }) {
     list,
     barberList,
     clientList,
-    setList,
+    setList
   };
-  return (
-    <AppointmentContext.Provider value={contextValue}>
-      {children}
-    </AppointmentContext.Provider>
-  );
+  return <AppointmentContext.Provider value={contextValue}>{children}</AppointmentContext.Provider>;
 }

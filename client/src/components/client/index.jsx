@@ -1,21 +1,21 @@
-import React, { useState } from "react";
-import "bootstrap/dist/css/bootstrap.min.css";
-import Sidebar from "./sidebar";
-import Dashboard from "./dashboard";
-import RequestService from "./request-service";
-import Settings from "./settings";
+import React, { useState } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import Sidebar from './sidebar';
+import Dashboard from './dashboard';
+import Settings from './settings';
+import NearbyBarbers from './nearby-barbers';
 
 function App() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const renderContent = () => {
     switch (activeTab) {
-      case "dashboard":
+      case 'dashboard':
         return <Dashboard />;
-      case "request-service":
-        return <RequestService />;
-      case "settings":
+      case 'settings':
         return <Settings />;
+      case 'nearby-barbers':
+        return <NearbyBarbers />;
       default:
         return <Dashboard />;
     }
@@ -25,7 +25,7 @@ function App() {
     <div className="min-vh-100 bg-light">
       <div className="d-flex">
         <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
-        <main className="flex-fill" style={{ marginLeft: "350px" }}>
+        <main className="flex-fill" style={{ marginLeft: '350px' }}>
           {renderContent()}
         </main>
       </div>
