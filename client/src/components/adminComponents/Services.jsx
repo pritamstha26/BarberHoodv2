@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
-import { Card, Table, Button, Modal, Form, Row, Col } from 'react-bootstrap';
-import './admin-panel.css';
-import { Edit2, Plus, Trash2, Search } from 'lucide-react';
-import api from '../../apis/api';
-import axios from 'axios';
+import { useEffect, useState } from "react";
+import { Card, Table, Button, Modal, Form, Row, Col } from "react-bootstrap";
+import "./admin-panel.css";
+import { Edit2, Plus, Trash2, Search } from "lucide-react";
+import api from "../../apis/api";
 
 const Services = () => {
   const [showAddModal, setShowAddModal] = useState(false);
@@ -13,9 +12,9 @@ const Services = () => {
   const [data, setData] = useState([]);
 
   const [formData, setFormData] = useState({
-    name: '',
-    price: '',
-    duration: ''
+    name: "",
+    price: "",
+    duration: "",
   });
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,67 +22,80 @@ const Services = () => {
   };
   const handleAddService = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem("access_token");
 
     try {
-      await axios.post('http://localhost:6969/api/barber-services/', formData, {
+      await api.post("/restaurateurs-services/", formData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
-      alert('Service added successfully');
+      alert("Service added successfully");
       setShowAddModal(false);
-      location.reload();
+      setFormData({ name: "", price: "", duration: "" });
+      await getData();
     } catch (error) {
-      console.error('Error adding service:', error.response?.data || error);
-      alert('Failed to add service');
+      console.error("Error adding service:", error.response?.data || error);
+      alert("Failed to add service");
     }
   };
 
   const handleEditService = async (service) => {
-    setShowEditModal(true);
     setSelectedService(service);
+    setFormData({
+      name: service.name || "",
+      price: service.price || "",
+      duration: service.duration || "",
+    });
+    setShowEditModal(true);
   };
 
   const handleUpdateService = async () => {
-    const token = localStorage.getItem('access_token');
-    const service = selectedService;
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const service = selectedService;
 
-    await api.put(`/barber-services/${service.id}`, formData, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    setShowEditModal(false);
-    await getData();
-    alert('Service updated successfully');
+      await api.put(`/restaurateurs-services/${service.id}`, formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setShowEditModal(false);
+      setSelectedService(null);
+      setFormData({ name: "", price: "", duration: "" });
+      await getData();
+      alert("Service updated successfully");
+    } catch (error) {
+      console.error("Error updating service:", error.response?.data || error);
+      alert("Failed to update service");
+    }
   };
 
   const handleDeleteService = async (id) => {
-    if (window.confirm('Are you sure you want to delete this service?')) {
-      const token = localStorage.getItem('access_token');
-      const response = await api.delete(`/barber-services/${id}`, {
+    if (window.confirm("Are you sure you want to delete this service?")) {
+      const token = sessionStorage.getItem("access_token");
+      const response = await api.delete(`/restaurateurs-services/${id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       console.log(response.data);
-      alert('Service deleted successfully');
-      location.reload();
+      alert("Service deleted successfully");
+      await getData();
     }
   };
   const getData = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await api.get('/barber-services/all', {
+      const token = sessionStorage.getItem("access_token");
+      const response = await api.get("/restaurateurs-services/all", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       const result = response.data;
       setData(result);
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error("Error fetching services:", error);
     }
   };
   useEffect(() => {
@@ -92,9 +104,9 @@ const Services = () => {
   useEffect(() => {
     if (selectedService) {
       setFormData({
-        name: selectedService.name || '',
-        price: selectedService.price || '',
-        duration: selectedService.duration || ''
+        name: selectedService.name || "",
+        price: selectedService.price || "",
+        duration: selectedService.duration || "",
       });
     }
   }, [selectedService]);
@@ -243,7 +255,7 @@ const Services = () => {
                     <Form.Label>Title</Form.Label>
                     <Form.Control
                       type="text"
-                      value={formData.name || ''}
+                      value={formData.name || ""}
                       onChange={handleChange}
                       name="name"
                     />

@@ -1,57 +1,56 @@
-import { Edit2, Plus, Trash2, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Table, Button, Badge, Modal, Form, InputGroup } from 'react-bootstrap';
+import { Edit2, Plus, Trash2, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Table, Button, Badge, Modal, Form, InputGroup } from "react-bootstrap";
 
-import './admin-panel.css';
-import { useAppointments } from '../../context/Appointment_context';
-import api from '../../apis/api';
-import axios from 'axios';
+import "./admin-panel.css";
+import { useAppointments } from "../../context/Appointment_context";
+import api from "../../apis/api";
 export const BarberList = () => {
-  const { list, barberList, setList } = useAppointments();
+  const { list, restaurateursList, setList } = useAppointments();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedBarber, setSelectedBarber] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    password: '',
-    phone_number: '',
-    role: 'barber'
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    phone_number: "",
+    role: "restaurateurs",
   });
 
   const handleAddBarber = async () => {
     // Add barber logic would go here
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const addData = { ...formData };
 
       const response = await api.post(`/auth/register`, addData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 201) {
-        alert('successfully updated');
+        alert("successfully updated");
         window.location.reload();
       }
     } catch (error) {
-      console.error('An error occurred while adding the barber:', error);
+      console.error("An error occurred while adding the barber:", error);
     }
 
     setShowAddModal(false);
   };
 
-  const handleEditBarber = (barber) => {
-    setSelectedBarber(barber);
+  const handleEditBarber = (restaurateur) => {
+    setSelectedBarber(restaurateur);
     setShowEditModal(true);
   };
 
-  const handleUpdateBarber = async (barb) => {
+  const handleUpdateBarber = async (rest) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const updatedData = { ...formData };
 
@@ -60,58 +59,68 @@ export const BarberList = () => {
         delete updatedData.password;
       }
 
-      const response = await api.put(`/users/${barb.id}`, updatedData, {
+      const response = await api.put(`/users/${rest.id}`, updatedData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 200) {
-        alert('successfully updated');
+        alert("successfully updated");
 
         window.location.reload();
       }
     } catch (error) {
-      console.error('An error occurred while updating the barber:', error);
+      console.error(
+        "An error occurred while updating the restaurateurs:",
+        error,
+      );
     }
     setShowEditModal(false);
   };
 
-  const filterBarber = barberList.filter(
-    (barber) =>
-      barber.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      barber.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      barber.last_name.includes(searchTerm)
+  const filterRestaurant = restaurateursList?.filter(
+    (restaurateur) =>
+      restaurateur.first_name
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      restaurateur.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      restaurateur.last_name.toLowerCase().includes(searchTerm.toLowerCase()),
   );
 
-  const handleDeleteBarber = async (b_id) => {
-    if (!window.confirm('Are you sure you want to delete this barber?')) return;
+  const handleDeleteBarber = async (r_id) => {
+    if (!window.confirm("Are you sure you want to delete this restaurateur?"))
+      return;
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
-      const response = await axios.delete(`http://localhost:6969/api/users/delete/${b_id}`, {
+      const response = await api.delete(`/users/delete/${r_id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.status === 200) {
-        // Remove barber from list after successful deletion
-        setList((prevList) => prevList.filter((barber) => barber.id !== b_id));
-        alert('Barber deleted successfully');
+        setList((prevList) =>
+          prevList.filter((restaurateur) => restaurateur.id !== r_id),
+        );
+        alert("Restaurateur deleted successfully");
       } else {
-        alert('Failed to delete barber');
+        alert("Failed to delete restaurateur");
       }
     } catch (error) {
       if (
         error.response &&
         error.response.status === 400 &&
-        error.response.data.message.includes('appointments')
+        error.response.data.message.includes("appointments")
       ) {
-        alert('Cannot delete a barber who has existing appointments.');
+        alert("Cannot delete a restaurateur who has existing appointments.");
       } else {
-        console.error('An error occurred while deleting the barber:', error);
-        alert('An unexpected error occurred while deleting the barber.');
+        console.error(
+          "An error occurred while deleting the restaurateur:",
+          error,
+        );
+        alert("An unexpected error occurred while deleting the restaurateur.");
       }
     }
   };
@@ -120,7 +129,7 @@ export const BarberList = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
   const num = 1;
@@ -130,8 +139,8 @@ export const BarberList = () => {
         first_name: selectedBarber.first_name,
         last_name: selectedBarber.last_name,
         email: selectedBarber.email,
-        password: '',
-        phone_number: selectedBarber.phone_number
+        password: "",
+        phone_number: selectedBarber.phone_number,
       });
     }
   }, [selectedBarber]);
@@ -140,11 +149,11 @@ export const BarberList = () => {
     <div className="barber-list p-3">
       <div className="page-title d-flex justify-content-between align-items-center">
         <div>
-          <h2>Barber List</h2>
-          <p className="text-muted">Manage your barbers</p>
+          <h2>Restaurateur List</h2>
+          <p className="text-muted">Manage your restaurateur</p>
         </div>
         <Button variant="primary" onClick={() => setShowAddModal(true)}>
-          <Plus size={20} /> Add New Barber
+          <Plus size={20} /> Add New restaurateur
         </Button>
       </div>
       <div className="mb-3">
@@ -172,29 +181,29 @@ export const BarberList = () => {
             </tr>
           </thead>
           <tbody>
-            {filterBarber.map((barber, num) => (
-              <tr key={barber.id}>
+            {filterRestaurant?.map((restaurateur, num) => (
+              <tr key={restaurateur.id}>
                 <td className="py-3">{num + 1}</td>
                 <td className="py-3">
-                  {barber.first_name} {barber.last_name}
+                  {restaurateur.first_name} {restaurateur.last_name}
                 </td>
                 <td className="py-3">
-                  <div>{barber.email}</div>
+                  <div>{restaurateur.email}</div>
                 </td>
 
-                <td className="py-3">{barber.phone_number}</td>
+                <td className="py-3">{restaurateur.phone_number}</td>
                 <td className="action-buttons d-flex justify-content-around py-3  ">
                   <Button
                     variant="outline-primary"
                     size="sm"
-                    onClick={() => handleEditBarber(barber)}
+                    onClick={() => handleEditBarber(restaurateur)}
                   >
                     <Edit2 size={20} />
                   </Button>
                   <Button
                     variant="outline-danger"
                     size="sm"
-                    onClick={() => handleDeleteBarber(barber.id)}
+                    onClick={() => handleDeleteBarber(restaurateur.id)}
                   >
                     <Trash2 size={20} />
                   </Button>
@@ -208,7 +217,7 @@ export const BarberList = () => {
       {/* Add Barber Modal */}
       <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Add New Barber</Modal.Title>
+          <Modal.Title>Add New restaurateur</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form>
@@ -269,7 +278,7 @@ export const BarberList = () => {
             Cancel
           </Button>
           <Button variant="primary" onClick={handleAddBarber}>
-            Add Barber
+            Add restaurateur
           </Button>
         </Modal.Footer>
       </Modal>
@@ -277,7 +286,7 @@ export const BarberList = () => {
       {/* Edit Barber Modal */}
       <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Edit Barber</Modal.Title>
+          <Modal.Title>Edit restaurateur</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedBarber && (
@@ -337,8 +346,11 @@ export const BarberList = () => {
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={() => handleUpdateBarber(selectedBarber)}>
-            Update Barber
+          <Button
+            variant="primary"
+            onClick={() => handleUpdateBarber(selectedBarber)}
+          >
+            Update restaurateur
           </Button>
         </Modal.Footer>
       </Modal>

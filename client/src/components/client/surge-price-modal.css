@@ -1,0 +1,189 @@
+/* Surge Price Confirmation Modal Styles */
+
+.surge-modal {
+  /* Ensure modal is properly positioned */
+  position: fixed;
+}
+
+.surge-modal-header {
+  background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+  color: white;
+  border: none;
+}
+
+.surge-modal-header .modal-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.surge-modal .modal-body {
+  padding: 2rem;
+  background-color: #f8f9fa;
+}
+
+.surge-modal .modal-footer {
+  background-color: white;
+  padding: 1.5rem;
+}
+
+/* Service Info Section */
+.service-info {
+  padding: 1rem;
+  background-color: white;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+}
+
+/* Price Comparison Section */
+.price-comparison {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.price-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.price-row:last-child {
+  border-bottom: none;
+}
+
+.price-row span:first-child {
+  font-size: 0.95rem;
+  color: #6c757d;
+}
+
+.price-row .price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #212529;
+}
+
+/* Original Price */
+.original-price {
+  background-color: #f8f9fa;
+}
+
+.original-price:hover {
+  background-color: #e9ecef;
+}
+
+/* Surge Price */
+.surge-price {
+  background-color: #fff8e1;
+  border-top: 2px solid #ffc107;
+  border-bottom: 2px solid #ffc107;
+  padding: 1.25rem 1.5rem;
+}
+
+.surge-price .price {
+  font-size: 1.5rem;
+  color: #ff9800;
+}
+
+/* Price Increase */
+.price-increase {
+  background-color: #fee;
+}
+
+.price-increase:hover {
+  background-color: #fdd;
+}
+
+/* Demand Info Section */
+.demand-info {
+  border-left: 4px solid #ff9800;
+}
+
+.demand-info h6 {
+  color: #212529;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.demand-stat {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  font-size: 0.95rem;
+}
+
+.demand-stat span:first-child {
+  color: #6c757d;
+}
+
+.demand-stat span:last-child {
+  color: #ff9800;
+}
+
+/* Buttons */
+.surge-modal .modal-footer .btn {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.surge-modal .modal-footer .btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: white;
+  border-color: #6c757d;
+}
+
+.surge-modal .modal-footer .btn-warning {
+  background-color: #ff9800;
+  border-color: #ff9800;
+  color: white;
+}
+
+.surge-modal .modal-footer .btn-warning:hover {
+  background-color: #e68900;
+  border-color: #e68900;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+/* Badge Styling */
+.surge-modal .badge {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+  .surge-modal .modal-body {
+    padding: 1.25rem;
+  }
+
+  .price-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .price-row .price {
+    align-self: flex-end;
+    margin-top: 0.5rem;
+  }
+
+  .surge-modal .modal-title {
+    font-size: 1rem;
+  }
+
+  .demand-stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
+  }
+}

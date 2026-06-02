@@ -2,7 +2,7 @@ import { DataTypes } from "sequelize";
 
 import sequelize from "../config/db.js";
 
-export const BarberService = sequelize.define("BarberService", {
+export const RestaurateurService = sequelize.define("RestaurateurService", {
   id: {
     type: DataTypes.INTEGER,
     primaryKey: true,
@@ -22,9 +22,9 @@ export const BarberService = sequelize.define("BarberService", {
   },
 });
 
-export default BarberService;
+export default RestaurateurService;
 
 // (async () => {
-//   await BarberService.sync({ alter: true }); // alter: true updates table structure if changed
-//   console.log("YourModel table synced.");
+//   await RestaurateurService.sync({ alter: true }); // alter: true updates table structure if changed
+//   console.log("RestaurateurService table synced.");
 // })();

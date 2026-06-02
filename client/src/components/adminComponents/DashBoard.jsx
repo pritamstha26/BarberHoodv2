@@ -2,10 +2,14 @@ import { Row, Col, Card } from "react-bootstrap";
 
 import "./admin-panel.css";
 import { useEffect, useState } from "react";
+import { jwtDecode } from "jwt-decode";
+import api from "../../apis/api";
+
 const Dashboard = () => {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const POLL_INTERVAL_MS = 5000;
   const StatusBadge = ({ status }) => {
     let className = "badge ";
 
@@ -31,11 +35,60 @@ const Dashboard = () => {
   };
 
   const getAppointments = async () => {
-    console.log("get appointment");
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Get current restaurant/restaurateur ID from token
+      const token = sessionStorage.getItem("access_token");
+      if (!token) {
+        setError("Not authenticated");
+        return;
+      }
+
+      const decodedToken = jwtDecode(token);
+      const restaurateurId = decodedToken.id;
+
+      // Fetch appointments for this restaurateur
+      const response = await api.get(`/appointments/all`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.status === 200) {
+        const rawData = response.data.data ?? response.data;
+        const appointmentsData = Array.isArray(rawData)
+          ? rawData.map((apt) => ({
+              ...apt,
+              client_name:
+                apt.client?.first_name && apt.client?.last_name
+                  ? `${apt.client.first_name} ${apt.client.last_name}`
+                  : apt.client_name,
+              restaurateur_name:
+                apt.restaurateurs?.first_name && apt.restaurateurs?.last_name
+                  ? `${apt.restaurateurs.first_name} ${apt.restaurateurs.last_name}`
+                  : apt.restaurateur_name,
+              service_name: apt.service?.name || apt.service_name,
+              duration: apt.service?.duration || apt.duration,
+              price: apt.service?.price || apt.price,
+            }))
+          : [];
+        setAppointments(appointmentsData);
+        console.log("Appointments loaded:", appointmentsData);
+      }
+    } catch (error) {
+      console.error("Error fetching appointments:", error);
+      setError("Failed to load appointments");
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
     getAppointments();
+    const interval = setInterval(getAppointments, POLL_INTERVAL_MS);
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -71,7 +124,7 @@ const Dashboard = () => {
                   <thead>
                     <tr>
                       <th>Client</th>
-                      <th>Barber</th>
+                      <th>Restaurant</th>
                       <th>Service</th>
                       <th>Time</th>
                       <th>Status</th>
@@ -81,30 +134,12 @@ const Dashboard = () => {
                   <tbody>
                     {appointments.map((data) => (
                       <tr key={data.id}>
-                        <td>
-                          {data.clientUser
-                            ? `${data.clientUser.first_name} ${data.clientUser.last_name}`
-                            : "Client Deleted"}
-                        </td>
-                        <td>
-                          {data.barberUser ? (
-                            `${data.barberUser.first_name} ${data.barberUser.last_name}`
-                          ) : (
-                            <span className="text-danger">
-                              {" "}
-                              Barber Not Available
-                            </span>
-                          )}
-                        </td>
-                        <td>
-                          {data.service?.service_type || "Service Deleted"}
-                        </td>
+                        <td>{data.client_name || "Unknown Client"}</td>
+                        <td>{data.restaurateur_name || "Restaurant"}</td>
+                        <td>{data.service_name || "Service Deleted"}</td>
                         <td>{new Date(data.date).toLocaleString()}</td>
                         <td>
-                          {/* <span className="badge bg-success">
-                            {data.service?.status || "N/A"}
-                          </span> */}
-                          <StatusBadge status={data.service?.status} />
+                          <StatusBadge status={data.status} />
                         </td>
                       </tr>
                     ))}

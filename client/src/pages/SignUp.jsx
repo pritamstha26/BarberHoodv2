@@ -78,7 +78,7 @@ export default function SignupPage() {
     try {
       const response = await api.post("/auth/register", data);
       if (response.status === 201) {
-        localStorage.setItem("access_token", response.data.access_token);
+        sessionStorage.setItem("access_token", response.data.access_token);
         //  Redirect on successful signup
         navigate("/login");
       }
@@ -86,7 +86,7 @@ export default function SignupPage() {
       //  Handle API errors
       if (err.response && err.response.data) {
         setError(
-          err.response.data.message || "An error occurred. Please try again."
+          err.response.data.message || "An error occurred. Please try again.",
         );
       } else {
         setError("Network error. Please check your connection.");
@@ -118,12 +118,14 @@ export default function SignupPage() {
                 <ButtonGroup className="w-100">
                   <Button
                     variant={
-                      selectedRole === "barber" ? "primary" : "outline-primary"
+                      selectedRole === "restaurateurs"
+                        ? "primary"
+                        : "outline-primary"
                     }
-                    onClick={() => handleRoleChange("barber")}
+                    onClick={() => handleRoleChange("restaurateurs")}
                     className="py-2"
                   >
-                    Barber
+                    Restaurateurs
                   </Button>
                   <Button
                     variant={

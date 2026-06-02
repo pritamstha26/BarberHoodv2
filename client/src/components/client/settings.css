@@ -1,0 +1,195 @@
+/* Restaurant Settings Component Styles */
+
+.settings-card {
+  border: none;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  margin-bottom: 1.5rem;
+  transition: box-shadow 0.3s ease;
+}
+
+.settings-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.settings-header {
+  background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+  color: white;
+  border: none;
+  padding: 1.5rem;
+  border-radius: 8px 8px 0 0;
+}
+
+.settings-header h5 {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.settings-header .text-muted {
+  color: rgba(255, 255, 255, 0.8) !important;
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.settings-card .card-body {
+  padding: 2rem;
+}
+
+/* Capacity Input */
+.capacity-input {
+  border: 2px solid #e9ecef;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.capacity-input:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+.capacity-input:disabled {
+  background-color: #f8f9fa;
+  color: #6c757d;
+}
+
+/* Form Labels */
+.settings-card .form-label {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  color: #212529;
+}
+
+.settings-card .form-text {
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+.settings-card .form-text ul {
+  padding-left: 1.25rem;
+  margin-top: 0.5rem;
+}
+
+.settings-card .form-text ul li {
+  margin-bottom: 0.25rem;
+  color: #6c757d;
+}
+
+/* Buttons */
+.capacity-save-btn,
+.settings-card .btn-outline-secondary {
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.capacity-save-btn {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.capacity-save-btn:hover:not(:disabled) {
+  background-color: #0a58ca;
+  border-color: #0a58ca;
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.3);
+}
+
+.capacity-save-btn:disabled {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+.settings-card .btn-outline-secondary {
+  border: 2px solid #6c757d;
+  color: #6c757d;
+}
+
+.settings-card .btn-outline-secondary:hover:not(:disabled) {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+.settings-card .btn-outline-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Info Card */
+.settings-card .bg-light {
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.settings-card .bg-light h6 {
+  color: #212529;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.settings-card .bg-light .small {
+  color: #6c757d;
+  line-height: 1.6;
+}
+
+/* Alerts */
+.settings-card .alert {
+  border: none;
+  border-radius: 6px;
+  padding: 1rem 1.25rem;
+  font-weight: 500;
+}
+
+.settings-card .alert-danger {
+  background-color: #fee;
+  color: #721c24;
+}
+
+.settings-card .alert-success {
+  background-color: #e8f5e9;
+  color: #1b5e20;
+}
+
+/* Spinner */
+.settings-card .spinner-border {
+  width: 2rem;
+  height: 2rem;
+  border-width: 0.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 576px) {
+  .settings-card .card-body {
+    padding: 1.5rem;
+  }
+
+  .settings-header {
+    padding: 1rem;
+  }
+
+  .settings-header h5 {
+    font-size: 1.1rem;
+  }
+
+  .capacity-save-btn,
+  .settings-card .btn-outline-secondary {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  .settings-card .d-flex {
+    flex-direction: column;
+  }
+
+  .capacity-input {
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+}

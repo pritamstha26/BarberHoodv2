@@ -1,0 +1,218 @@
+/* Restaurant Settings Page Styles */
+
+.restaurant-settings-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  padding: 2rem 0;
+}
+
+.restaurant-settings-page h2 {
+  color: #333;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.restaurant-settings-page .text-muted {
+  font-size: 0.95rem;
+}
+
+/* Back button */
+.restaurant-settings-page .btn-link {
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.restaurant-settings-page .btn-link:hover {
+  color: #0d6efd !important;
+  transform: translateX(-3px);
+}
+
+/* Card styling */
+.restaurant-settings-page .card {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.restaurant-settings-page .card-header {
+  padding: 1.5rem;
+  border-bottom: 3px solid #0d6efd;
+}
+
+.restaurant-settings-page .card-header h5 {
+  font-weight: 700;
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+/* Tab styling */
+.restaurant-settings-page .nav-tabs {
+  border-bottom: 2px solid #e9ecef;
+}
+
+.restaurant-settings-page .nav-tabs .nav-link {
+  color: #6c757d;
+  border: none;
+  border-bottom: 3px solid transparent;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 0.75rem 1rem;
+}
+
+.restaurant-settings-page .nav-tabs .nav-link:hover {
+  color: #0d6efd;
+  border-bottom-color: #0d6efd;
+}
+
+.restaurant-settings-page .nav-tabs .nav-link.active {
+  color: #0d6efd;
+  background-color: transparent;
+  border-bottom-color: #0d6efd;
+}
+
+/* Info cards */
+.info-card {
+  padding: 1.25rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border-left: 4px solid #0d6efd;
+  transition: all 0.3s ease;
+}
+
+.info-card:hover {
+  background: #e7f1ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(13, 110, 253, 0.1);
+}
+
+.info-card h6 {
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-card ul {
+  margin: 0.5rem 0;
+  padding-left: 1.25rem;
+}
+
+.info-card li {
+  margin-bottom: 0.25rem;
+  line-height: 1.4;
+}
+
+/* Examples table */
+.restaurant-settings-page .table {
+  margin-bottom: 0;
+}
+
+.restaurant-settings-page .table thead {
+  background: #f8f9fa;
+  font-weight: 600;
+  color: #495057;
+}
+
+.restaurant-settings-page .table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.restaurant-settings-page .table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+/* FAQ items */
+.faq-item {
+  padding: 1rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  transition: all 0.3s ease;
+  border-left: 3px solid transparent;
+}
+
+.faq-item:hover {
+  border-left-color: #0d6efd;
+  background: #e7f1ff;
+}
+
+.faq-item h6 {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+}
+
+.faq-item p {
+  margin-bottom: 0;
+  line-height: 1.5;
+}
+
+/* Alert styling */
+.restaurant-settings-page .alert {
+  border-radius: 8px;
+  border: none;
+  margin-bottom: 1.5rem;
+}
+
+.restaurant-settings-page .alert-success {
+  background-color: #d1e7dd;
+  color: #0f5132;
+}
+
+.restaurant-settings-page .alert-info {
+  background-color: #cfe2ff;
+  color: #084298;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .restaurant-settings-page {
+    padding: 1rem 0;
+  }
+
+  .restaurant-settings-page h2 {
+    font-size: 1.5rem;
+  }
+
+  .restaurant-settings-page .nav-tabs .nav-link {
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+  }
+
+  .info-card {
+    margin-bottom: 1rem;
+  }
+
+  .restaurant-settings-page .table {
+    font-size: 0.85rem;
+  }
+
+  .restaurant-settings-page .table thead th {
+    padding: 0.5rem;
+  }
+
+  .restaurant-settings-page .table tbody td {
+    padding: 0.5rem;
+  }
+}
+
+/* Animations */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.restaurant-settings-page .card {
+  animation: slideIn 0.3s ease;
+}
+
+/* Loading state */
+.restaurant-settings-page .spinner-border {
+  color: #0d6efd;
+  width: 2rem;
+  height: 2rem;
+}

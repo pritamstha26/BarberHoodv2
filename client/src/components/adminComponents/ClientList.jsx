@@ -1,45 +1,42 @@
-import { Edit2, Plus, Trash2, Search } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { Table, Button, Badge, Modal, Form, InputGroup } from 'react-bootstrap';
+import { Edit2, Plus, Trash2, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Table, Button, Badge, Modal, Form, InputGroup } from "react-bootstrap";
 
-import './admin-panel.css';
-import { useAppointments } from '../../context/Appointment_context';
-import api from '../../apis/api';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
+import "./admin-panel.css";
+import { useAppointments } from "../../context/Appointment_context";
+import api from "../../apis/api";
 export const ClientList = () => {
   const { list, clientList, setList } = useAppointments();
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [selectedClient, setSelectedClient] = useState(null);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    password: '',
-    phone_number: '',
-    role: 'client'
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    phone_number: "",
+    role: "client",
   });
 
   const handleAddClient = async () => {
-    // Add barber logic would go here
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const addData = { ...formData };
 
       const response = await api.post(`/auth/register`, addData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 201) {
-        alert('successfully updated');
+        alert("successfully updated");
         window.location.reload();
       }
     } catch (error) {
-      console.error('An error occurred while adding the client:', error);
+      console.error("An error occurred while adding the client:", error);
     }
 
     setShowAddModal(false);
@@ -52,7 +49,7 @@ export const ClientList = () => {
 
   const handleUpdateClient = async (client) => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const updatedData = { ...formData };
 
@@ -63,16 +60,16 @@ export const ClientList = () => {
 
       const response = await api.put(`/users/${client.id}`, updatedData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 200) {
-        alert('successfully updated');
+        alert("successfully updated");
 
         window.location.reload();
       }
     } catch (error) {
-      console.error('An error occurred while updating the client:', error);
+      console.error("An error occurred while updating the client:", error);
     }
     setShowEditModal(false);
   };
@@ -81,22 +78,22 @@ export const ClientList = () => {
     (client) =>
       client.first_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       client.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.last_name.includes(searchTerm)
+      client.last_name.includes(searchTerm),
   );
   const handleDeleteClient = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this user?')) return;
+    if (!window.confirm("Are you sure you want to delete this user?")) return;
 
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
       if (!token) {
-        alert('No token found, please login again.');
+        alert("No token found, please login again.");
         return;
       }
 
-      const response = await axios.delete(`http://localhost:6969/api/users/delete/${id}`, {
+      const response = await axios.delete(`/users/delete/${id}`, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
 
       if (response.data.success) {
@@ -104,11 +101,11 @@ export const ClientList = () => {
         // Update your local list by filtering out deleted user
         setList((prevList) => prevList.filter((user) => user.id !== id));
       } else {
-        alert(response.data.message || 'Failed to delete user');
+        alert(response.data.message || "Failed to delete user");
       }
     } catch (error) {
-      console.error('An error occurred while deleting the user:', error);
-      alert('Something went wrong while deleting the user.');
+      console.error("An error occurred while deleting the user:", error);
+      alert("Something went wrong while deleting the user.");
     }
   };
 
@@ -116,7 +113,7 @@ export const ClientList = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
   const num = 1;
@@ -126,16 +123,16 @@ export const ClientList = () => {
         first_name: selectedClient.first_name,
         last_name: selectedClient.last_name,
         email: selectedClient.email,
-        password: '',
-        phone_number: selectedClient.phone_number
+        password: "",
+        phone_number: selectedClient.phone_number,
       });
     }
   }, [selectedClient]);
   return (
-    <div className="barber-list p-3">
+    <div className=" p-3">
       <div className="page-title d-flex justify-content-between align-items-center">
         <div>
-          <h2>Client List</h2>
+          <h2 className="">Client List</h2>
           <p className="text-muted">Manage your clients</p>
         </div>
         <Button variant="primary" onClick={() => setShowAddModal(true)}>
@@ -332,7 +329,10 @@ export const ClientList = () => {
           <Button variant="secondary" onClick={() => setShowEditModal(false)}>
             Cancel
           </Button>
-          <Button variant="primary" onClick={() => handleUpdateClient(selectedClient)}>
+          <Button
+            variant="primary"
+            onClick={() => handleUpdateClient(selectedClient)}
+          >
             Update Client
           </Button>
         </Modal.Footer>

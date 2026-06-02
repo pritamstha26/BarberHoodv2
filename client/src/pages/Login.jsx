@@ -18,6 +18,7 @@ import api from "../apis/api";
 export default function LoginPage() {
   const [validated, setValidated] = useState(false);
   const [selectedRole, setSelectedRole] = useState("client");
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -40,23 +41,38 @@ export default function LoginPage() {
 
     if (form.checkValidity() === false) {
       event.stopPropagation();
-    } else {
-      // Handle form submission here
-      console.log("Form submitted:", { ...formData, role: selectedRole });
+      setValidated(true);
+      console.log("Form validation failed");
+      return;
     }
 
     setValidated(true);
+    setIsLoading(true);
     formData.role = selectedRole; // Add role to formData
+    console.log("Attempting login with:", {
+      email: formData.email,
+      role: selectedRole,
+    });
+
     try {
       const response = await api.post(`/auth/login`, formData);
+      console.log("Login response:", response);
+
       if (response.status === 200) {
-        localStorage.setItem("access_token", response.data.access_token);
+        console.log("Login successful, token:", response.data.access_token);
+        sessionStorage.setItem("access_token", response.data.access_token);
+        // Navigate after successful login - context will fetch data on mount
+        console.log("Navigating to:", `/${selectedRole}`);
         navigate(`/${selectedRole}`);
       }
     } catch (error) {
+      console.error("Login error:", error);
       if (isAxiosError(error)) {
-        alert(error.response.data.message);
+        alert(error.response?.data?.message || "Login failed");
+      } else {
+        alert("An unexpected error occurred");
       }
+      setIsLoading(false);
     }
   };
 
@@ -67,7 +83,7 @@ export default function LoginPage() {
           <Card className="shadow">
             <Card.Body className="p-4">
               <div className="   d-flex justify-content-between align-items-center">
-                <Logo />
+                {/* <Logo /> */}
 
                 <div className="">
                   <h2 className="fw-bold">Login</h2>
@@ -91,12 +107,14 @@ export default function LoginPage() {
                   </Button>
                   <Button
                     variant={
-                      selectedRole === "barber" ? "primary" : "outline-primary"
+                      selectedRole === "restaurateurs"
+                        ? "primary"
+                        : "outline-primary"
                     }
-                    onClick={() => handleRoleChange("barber")}
+                    onClick={() => handleRoleChange("restaurateurs")}
                     className="py-2"
                   >
-                    Barber
+                    Restaurateurs
                   </Button>
                   <Button
                     variant={
@@ -151,9 +169,11 @@ export default function LoginPage() {
                   variant="primary"
                   type="submit"
                   className="w-100 py-2 mb-3"
+                  disabled={isLoading}
                 >
-                  Login as{" "}
-                  {selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}
+                  {isLoading
+                    ? "Logging in..."
+                    : `Login as ${selectedRole.charAt(0).toUpperCase() + selectedRole.slice(1)}`}
                 </Button>
 
                 <div className="text-center">

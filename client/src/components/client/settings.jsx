@@ -39,7 +39,7 @@ const Settings = () => {
 
   // Decode token and initialize state
   useEffect(() => {
-    const token = localStorage.getItem("access_token");
+    const token = sessionStorage.getItem("access_token");
     if (typeof token !== "string" || !token) {
       setError("No valid token found. Please log in.");
       navigate("/login");
@@ -50,7 +50,7 @@ const Settings = () => {
       const decoded = jwtDecode(token);
       if (decoded.exp * 1000 < Date.now()) {
         setError("Token expired. Please log in again.");
-        localStorage.removeItem("access_token");
+        sessionStorage.removeItem("access_token");
         navigate("/login");
         return;
       }
@@ -66,7 +66,7 @@ const Settings = () => {
       setUserId(decoded.id);
     } catch (err) {
       setError("Invalid token. Please log in again.");
-      localStorage.removeItem("access_token");
+      sessionStorage.removeItem("access_token");
       navigate("/login");
     }
   }, [navigate]);
@@ -95,7 +95,7 @@ const Settings = () => {
         setShowSuccess(true);
 
         setTimeout(() => {
-          localStorage.removeItem("access_token");
+          sessionStorage.removeItem("access_token");
           navigate("/login");
         }, 3000);
       }

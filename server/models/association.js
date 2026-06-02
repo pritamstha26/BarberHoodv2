@@ -1,7 +1,8 @@
 import { UsersModel } from "./model.js";
 import AppointmentModel from "./appointmentModel.js";
-import ServiceModel from "./service.js";
+import RestaurateurService from "./RestaurateurServices.js";
 
+// Client -> Appointments
 UsersModel.hasMany(AppointmentModel, {
   foreignKey: "clientId",
   as: "appointments",
@@ -12,29 +13,30 @@ AppointmentModel.belongsTo(UsersModel, {
   as: "clientUser",
 });
 
+// Restaurateur (formerly barber) associations
 AppointmentModel.belongsTo(UsersModel, {
-  foreignKey: "barberId",
-  as: "barberUser",
+  foreignKey: "restaurateurId",
+  as: "restaurateurUser",
 });
 
-UsersModel.hasMany(ServiceModel, {
-  foreignKey: "barberId",
+UsersModel.hasMany(RestaurateurService, {
+  foreignKey: "restaurateurId",
   as: "services",
 });
 
-ServiceModel.belongsTo(UsersModel, {
-  foreignKey: "barberId",
-  as: "barber",
+RestaurateurService.belongsTo(UsersModel, {
+  foreignKey: "restaurateurId",
+  as: "restaurateur",
 });
 
-ServiceModel.hasMany(AppointmentModel, {
+RestaurateurService.hasMany(AppointmentModel, {
   foreignKey: "serviceId",
   as: "appointments",
 });
 
-AppointmentModel.belongsTo(ServiceModel, {
+AppointmentModel.belongsTo(RestaurateurService, {
   foreignKey: "serviceId",
   as: "service",
 });
 
-export { UsersModel, AppointmentModel, ServiceModel };
+export { UsersModel, AppointmentModel, RestaurateurService };

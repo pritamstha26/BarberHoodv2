@@ -13,6 +13,7 @@ import BarberDashboard from "../components/barber";
 import ProtectedRoute from "./ProtectedRoutes";
 import Settings from "../components/client/settings";
 import ClientList from "../components/adminComponents/ClientList";
+import RestaurantSettingsPage from "../components/client/restaurant-settings-page";
 
 //
 const routes = [
@@ -25,7 +26,8 @@ const routes = [
     element: <ProtectedRoute />,
     children: [
       { path: "/client", element: <ClientPortal /> },
-      { path: "/barber", element: <BarberDashboard /> },
+      { path: "/restaurateurs", element: <BarberDashboard /> },
+      { path: "/restaurant-settings", element: <RestaurantSettingsPage /> },
     ],
   },
   {
@@ -35,7 +37,7 @@ const routes = [
       { path: "", element: <Dashboard /> },
       { path: "dashboard", element: <Dashboard /> },
 
-      { path: "barber-list", element: <BarberList /> },
+      { path: "Restaurant-list", element: <BarberList /> },
       { path: "services", element: <ServiceList /> },
       { path: "settings", element: <Settings /> },
       { path: "clients", element: <ClientList /> },

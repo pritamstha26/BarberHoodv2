@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from 'react';
+import React, { use, useEffect, useState } from "react";
 import {
   Container,
   Card,
@@ -9,24 +9,24 @@ import {
   Alert,
   ProgressBar,
   Modal,
-  Spinner
-} from 'react-bootstrap';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
-import { FaPaperPlane, FaUpload, FaTimes, FaSave } from 'react-icons/fa';
-import api from '../../apis/api';
-import { jwtDecode } from 'jwt-decode';
+  Spinner,
+} from "react-bootstrap";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { FaPaperPlane, FaUpload, FaTimes, FaSave } from "react-icons/fa";
+import api from "../../apis/api";
+import { jwtDecode } from "jwt-decode";
 
 const RequestService = () => {
   const [formData, setFormData] = useState({
-    service_type: '',
-    title: '',
-    description: '',
-    price: '',
+    service_type: "",
+    title: "",
+    description: "",
+    price: "",
     deadline: new Date(Date.now() + 60 * 60 * 1000),
-    prefer_contact_method: 'email',
-    duration: '',
-    clientType: 'regular'
+    prefer_contact_method: "email",
+    duration: "",
+    clientType: "regular",
   });
   const [apiData, setApiData] = useState([]);
   const [validated, setValidated] = useState(false);
@@ -40,7 +40,7 @@ const RequestService = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
@@ -55,7 +55,7 @@ const RequestService = () => {
     }
 
     //adding the user_id to the formData
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem("access_token");
     const decoded = jwtDecode(token);
 
     formData.user_id = decoded.id;
@@ -66,7 +66,7 @@ const RequestService = () => {
   const addServiceRequest = async (data) => {
     try {
       setIsLoading(true);
-      const res = await api.post('/services', data);
+      const res = await api.post("/services", data);
       if (res.status == 201) {
         // Show success message
         setShowSuccess(true);
@@ -76,20 +76,20 @@ const RequestService = () => {
           setAppointmentDetails({
             ...res.data.appointment,
             serviceName: data.service_type,
-            serviceTitle: data.title
+            serviceTitle: data.title,
           });
           setShowAppointmentModal(true);
         }
 
         setFormData({
-          service_type: '',
-          title: '',
-          description: '',
-          price: '',
-          deadline: '',
-          prefer_contact_method: 'email',
-          duration: '',
-          clientType: 'regular'
+          service_type: "",
+          title: "",
+          description: "",
+          price: "",
+          deadline: "",
+          prefer_contact_method: "email",
+          duration: "",
+          clientType: "regular",
         });
 
         // Don't reload immediately to allow user to see appointment details
@@ -100,8 +100,11 @@ const RequestService = () => {
         }
       }
     } catch (error) {
-      console.error('Error submitting service request:', error);
-      alert('Error submitting service request: ' + (error.response?.data?.error || error.message));
+      console.error("Error submitting service request:", error);
+      alert(
+        "Error submitting service request: " +
+          (error.response?.data?.error || error.message),
+      );
     } finally {
       setIsLoading(false);
     }
@@ -111,26 +114,26 @@ const RequestService = () => {
     return selectedHour >= 8 && selectedHour < 20;
   };
 
-  const date = new Date('2025-07-28T00:00:00.000Z');
+  const date = new Date("2025-07-28T00:00:00.000Z");
   useEffect(() => {
     const response = async () => {
       try {
-        const token = localStorage.getItem('access_token');
+        const token = sessionStorage.getItem("access_token");
         if (!token) {
-          console.error('No access token found');
+          console.error("No access token found");
           return;
         }
-        const res = await api.get('/services/all', {
+        const res = await api.get("/services/all", {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
+            Authorization: `Bearer ${token}`,
+          },
         });
         if (res.status === 200) {
           // Assuming the response contains an array of service types
           setApiData(res.data.data);
         }
       } catch (error) {
-        console.error('Error fetching API data:', error);
+        console.error("Error fetching API data:", error);
       }
     };
     response();
@@ -139,22 +142,22 @@ const RequestService = () => {
   const [data, setDatas] = useState([]);
   const apis = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
       if (!token) {
-        console.error('No access token found');
+        console.error("No access token found");
         return;
       }
-      const res = await api.get('/barber-services/all', {
+      const res = await api.get("/restaurateurs-services/all", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (res.status === 200) {
         // Assuming the response contains an array of service types
         setDatas(res.data);
       }
     } catch (error) {
-      console.error('Error fetching API data:', error);
+      console.error("Error fetching API data:", error);
     }
   };
   useEffect(() => {
@@ -164,13 +167,21 @@ const RequestService = () => {
     <Container fluid className="p-4">
       <div className="mb-4">
         <h1 className="display-5 fw-bold text-dark mb-2">Request Service</h1>
-        <p className="text-muted">Submit a new service request and we'll get back to you soon.</p>
+        <p className="text-muted">
+          Submit a new service request and we'll get back to you soon.
+        </p>
       </div>
 
       {showSuccess && (
-        <Alert variant="success" className="mb-4" dismissible onClose={() => setShowSuccess(false)}>
+        <Alert
+          variant="success"
+          className="mb-4"
+          dismissible
+          onClose={() => setShowSuccess(false)}
+        >
           <Alert.Heading>Success!</Alert.Heading>
-          Your service request has been submitted successfully. We'll contact you within 24 hours.
+          Your service request has been submitted successfully. We'll contact
+          you within 24 hours.
         </Alert>
       )}
 
@@ -203,8 +214,8 @@ const RequestService = () => {
                       setFormData((prev) => ({
                         ...prev,
                         service_type: value,
-                        price: found?.price || '',
-                        duration: found?.duration || ''
+                        price: found?.price || "",
+                        duration: found?.duration || "",
                       }));
                     }}
                     required
@@ -280,7 +291,9 @@ const RequestService = () => {
               </Col>
               <Col md={4}>
                 <Form.Group>
-                  <Form.Label className="fw-medium">Duration(in minutes)</Form.Label>
+                  <Form.Label className="fw-medium">
+                    Duration(in minutes)
+                  </Form.Label>
                   <Form.Control
                     type="text"
                     name="duration"
@@ -297,8 +310,12 @@ const RequestService = () => {
                   <br />
 
                   <DatePicker
-                    selected={formData.deadline ? new Date(formData.deadline) : null}
-                    onChange={(date) => setFormData({ ...formData, deadline: date })}
+                    selected={
+                      formData.deadline ? new Date(formData.deadline) : null
+                    }
+                    onChange={(date) =>
+                      setFormData({ ...formData, deadline: date })
+                    }
                     showTimeSelect
                     filterTime={filterPassedTime}
                     timeIntervals={15}
@@ -313,13 +330,15 @@ const RequestService = () => {
             <Row className="g-3 mb-3">
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label className="fw-medium">Preferred Contact Method</Form.Label>
+                  <Form.Label className="fw-medium">
+                    Preferred Contact Method
+                  </Form.Label>
                   <div className="d-flex gap-3 mt-2">
                     <Form.Check
                       type="radio"
                       name="prefer_contact_method"
                       value="email"
-                      checked={formData.prefer_contact_method === 'email'}
+                      checked={formData.prefer_contact_method === "email"}
                       onChange={handleInputChange}
                       label="Email"
                       id="email"
@@ -328,7 +347,7 @@ const RequestService = () => {
                       type="radio"
                       name="prefer_contact_method"
                       value="phone"
-                      checked={formData.prefer_contact_method === 'phone'}
+                      checked={formData.prefer_contact_method === "phone"}
                       onChange={handleInputChange}
                       label="Phone(Feature Coming Soon)"
                       id="phone"
@@ -372,8 +391,8 @@ const RequestService = () => {
                     (formData.title ? 1 : 0) +
                     (formData.description ? 1 : 0) ===
                   3
-                    ? 'success'
-                    : 'primary'
+                    ? "success"
+                    : "primary"
                 }
               />
             </div>
@@ -433,24 +452,29 @@ const RequestService = () => {
                 <strong>Title:</strong> {appointmentDetails.serviceTitle}
               </p>
               <p className="mb-1">
-                <strong>Date & Time:</strong> {new Date(appointmentDetails.date).toLocaleString()}
+                <strong>Date & Time:</strong>{" "}
+                {new Date(appointmentDetails.date).toLocaleString()}
               </p>
               <p className="mb-1">
-                <strong>Barber:</strong> {appointmentDetails.barberName}
+                <strong>Restaurateur:</strong>{" "}
+                {appointmentDetails.restaurateurName}
               </p>
               <p className="mb-1">
-                <strong>Status:</strong> <span className="text-warning">Pending</span>
+                <strong>Status:</strong>{" "}
+                <span className="text-warning">Pending</span>
               </p>
               {appointmentDetails.estimatedStartTime && (
                 <p className="mb-1">
-                  <strong>Estimated Start Time:</strong>{' '}
-                  {new Date(appointmentDetails.estimatedStartTime).toLocaleString()}
+                  <strong>Estimated Start Time:</strong>{" "}
+                  {new Date(
+                    appointmentDetails.estimatedStartTime,
+                  ).toLocaleString()}
                 </p>
               )}
               <hr />
               <p className="text-muted">
-                Your appointment has been scheduled. You can view or manage your appointments from
-                your dashboard.
+                Your appointment has been scheduled. You can view or manage your
+                appointments from your dashboard.
               </p>
             </div>
           )}

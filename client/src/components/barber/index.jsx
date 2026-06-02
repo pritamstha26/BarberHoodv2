@@ -1,4 +1,4 @@
-import { use, useEffect, useState } from 'react';
+import { use, useEffect, useState } from "react";
 import {
   Container,
   Row,
@@ -12,8 +12,8 @@ import {
   Modal,
   Form,
   Alert,
-  Spinner
-} from 'react-bootstrap';
+  Spinner,
+} from "react-bootstrap";
 import {
   FaTachometerAlt,
   FaCalendarAlt,
@@ -27,61 +27,76 @@ import {
   FaCalendar,
   FaPhoneAlt,
   FaEnvelope,
-  FaUser
-} from 'react-icons/fa';
-import 'bootstrap/dist/css/bootstrap.min.css';
-import api from '../../apis/api';
-import { useNavigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
-import { Plus } from 'lucide-react';
-import axios from 'axios';
+  FaUser,
+} from "react-icons/fa";
+import "bootstrap/dist/css/bootstrap.min.css";
+import api from "../../apis/api";
+import { useNavigate } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
+import { Plus } from "lucide-react";
 
 export default function BarberDashboard() {
-  const [activeTab, setActiveTab] = useState('appointments');
+  const [activeTab, setActiveTab] = useState("appointments");
   const navigate = useNavigate();
 
   const [appointments, setAppointments] = useState([]);
+  const [debugInfo, setDebugInfo] = useState({
+    lastRequest: null,
+    lastResponse: null,
+  });
   const [isLoading, setIsLoading] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
-  const [alertVariant, setAlertVariant] = useState('success');
+  const [alertMessage, setAlertMessage] = useState("");
+  const [alertVariant, setAlertVariant] = useState("success");
   //
-  const [barberInfo, setBarberInfo] = useState(null);
+  const [restaurateurInfo, setRestaurantInfo] = useState(null);
   const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    password: '',
-    phone_number: ''
+    first_name: "",
+    last_name: "",
+    email: "",
+    password: "",
+    phone_number: "",
   });
   const [serviceDataForm, setServiceDataForm] = useState({
-    name: '',
-    price: '',
-    duration: ''
+    name: "",
+    price: "",
+    duration: "",
   });
 
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
 
-  const [show, setShow] = useState(false);
-  const handleClose = () => setShow(!show);
+  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
+  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
+  const handleCloseAddService = () => setShowAddServiceModal(false);
+  const handleCloseEditService = () => setShowEditServiceModal(false);
+  const handleOpenAddService = () => {
+    setSelectedService(null);
+    setServiceDataForm({ name: "", price: "", duration: "" });
+    setShowAddServiceModal(true);
+  };
   const handleService = (service) => {
     setSelectedService(service);
-    setShow(true);
+    setServiceDataForm({
+      name: service.name || "",
+      price: service.price || "",
+      duration: service.duration || "",
+    });
+    setShowEditServiceModal(true);
   };
   const getServices = async () => {
     try {
-      const token = localStorage.getItem('access_token');
-      const response = await api.get('/barber-services/all', {
+      const token = sessionStorage.getItem("access_token");
+      const response = await api.get("/restaurateurs-services/all", {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 200) {
         setServices(response.data);
       }
     } catch (error) {
-      console.error('Error fetching services:', error);
+      console.error("Error fetching services:", error);
     }
   };
   // Appointment functions now handled differently
@@ -104,49 +119,50 @@ export default function BarberDashboard() {
 
   const getStatusVariant = (status) => {
     switch (status) {
-      case 'completed':
-        return 'success';
-      case 'in_progress':
-        return 'primary';
-      case 'pending':
-        return 'warning';
-      case 'cancelled':
-        return 'danger';
+      case "completed":
+        return "success";
+      case "in_progress":
+        return "primary";
+      case "pending":
+        return "warning";
+      case "cancelled":
+        return "danger";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('access_token');
-    navigate('/login');
+    sessionStorage.removeItem("access_token");
+    navigate("/login");
   };
   const handleAddService = async (e) => {
     e.preventDefault();
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem("access_token");
 
     try {
-      const response = await axios.post(
-        'http://localhost:6969/api/barber-services/', // Change to your backend URL
+      const response = await api.post(
+        "/restaurateurs-services/",
         serviceDataForm,
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
-      alert('Service added successfully');
-      setShow(false);
-      location.reload();
+      alert("Service added successfully");
+      setShowAddServiceModal(false);
+      setServiceDataForm({ name: "", price: "", duration: "" });
+      await getServices();
     } catch (error) {
-      console.error('Error adding service:', error.response?.data || error);
-      alert('Failed to add service');
+      console.error("Error adding service:", error.response?.data || error);
+      alert("Failed to add service");
     }
   };
 
-  const handleUpdateBarber = async () => {
+  const handleUpdateRestaurateur = async () => {
     try {
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
       const decode = jwtDecode(token);
 
       const updatedData = { ...formData };
@@ -158,56 +174,70 @@ export default function BarberDashboard() {
 
       const response = await api.put(`/users/${decode.id}`, updatedData, {
         headers: {
-          Authorization: `Bearer ${token}`
-        }
+          Authorization: `Bearer ${token}`,
+        },
       });
       if (response.status === 200) {
-        alert('successfully ');
-        localStorage.removeItem('access_token');
-        navigate('/login');
+        alert("successfully ");
+        sessionStorage.removeItem("access_token");
+        navigate("/login");
       }
     } catch (error) {
-      console.error('An error occurred while updating the barber:', error);
+      console.error(
+        "An error occurred while updating the restaurateur:",
+        error,
+      );
     }
   };
   const handleUpdateService = async () => {
-    const token = localStorage.getItem('access_token');
-    const service = selectedService;
-    await api.put(`/barber-services/${service.id}`, serviceDataForm, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
-    setShow(false);
-    await getServices();
+    try {
+      const token = sessionStorage.getItem("access_token");
+      const service = selectedService;
+      await api.put(`/restaurateurs-services/${service.id}`, serviceDataForm, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      setShowEditServiceModal(false);
+      setSelectedService(null);
+      setServiceDataForm({ name: "", price: "", duration: "" });
+      await getServices();
+      alert("Service updated successfully");
+    } catch (error) {
+      console.error("Error updating service:", error.response?.data || error);
+      alert("Failed to update service");
+    }
   };
 
   // Handle appointment confirmation
   const handleConfirmAppointment = async (appointmentId) => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const response = await api.put(
         `/appointments/${appointmentId}/confirm`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.status === 200) {
-        showAlertMessage('Appointment confirmed successfully!', 'success');
+        showAlertMessage("Appointment confirmed successfully!", "success");
         // Update appointments list
         await fetchAppointments();
       } else {
-        showAlertMessage('Failed to confirm appointment', 'danger');
+        showAlertMessage("Failed to confirm appointment", "danger");
       }
     } catch (error) {
-      console.error('Error confirming appointment:', error);
-      showAlertMessage(`Error: ${error.response?.data?.message || error.message}`, 'danger');
+      console.error("Error confirming appointment:", error);
+      showAlertMessage(
+        `Error: ${error.response?.data?.message || error.message}`,
+        "danger",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -216,33 +246,38 @@ export default function BarberDashboard() {
   // Handle appointment cancellation
   const handleCancelAppointment = async (appointmentId) => {
     try {
-      if (!window.confirm('Are you sure you want to cancel this appointment?')) {
+      if (
+        !window.confirm("Are you sure you want to cancel this appointment?")
+      ) {
         return;
       }
 
       setIsLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const response = await api.put(
         `/appointments/${appointmentId}/cancel`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.status === 200) {
-        showAlertMessage('Appointment cancelled successfully!', 'warning');
+        showAlertMessage("Appointment cancelled successfully!", "warning");
         // Update appointments list
         await fetchAppointments();
       } else {
-        showAlertMessage('Failed to cancel appointment', 'danger');
+        showAlertMessage("Failed to cancel appointment", "danger");
       }
     } catch (error) {
-      console.error('Error cancelling appointment:', error);
-      showAlertMessage(`Error: ${error.response?.data?.message || error.message}`, 'danger');
+      console.error("Error cancelling appointment:", error);
+      showAlertMessage(
+        `Error: ${error.response?.data?.message || error.message}`,
+        "danger",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -252,28 +287,31 @@ export default function BarberDashboard() {
   const handleCompleteAppointment = async (appointmentId) => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
 
       const response = await api.put(
         `/appointments/${appointmentId}/complete`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
+            Authorization: `Bearer ${token}`,
+          },
+        },
       );
 
       if (response.status === 200) {
-        showAlertMessage('Appointment marked as completed!', 'success');
+        showAlertMessage("Appointment marked as completed!", "success");
         // Update appointments list
         await fetchAppointments();
       } else {
-        showAlertMessage('Failed to complete appointment', 'danger');
+        showAlertMessage("Failed to complete appointment", "danger");
       }
     } catch (error) {
-      console.error('Error completing appointment:', error);
-      showAlertMessage(`Error: ${error.response?.data?.message || error.message}`, 'danger');
+      console.error("Error completing appointment:", error);
+      showAlertMessage(
+        `Error: ${error.response?.data?.message || error.message}`,
+        "danger",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -282,23 +320,55 @@ export default function BarberDashboard() {
   const fetchAppointments = async () => {
     try {
       setIsLoading(true);
-      const token = localStorage.getItem('access_token');
+      const token = sessionStorage.getItem("access_token");
       if (!token) return;
 
       const decoded = jwtDecode(token);
-      const barberId = decoded.id;
+      const restaurateurs = decoded.id;
 
-      const response = await api.get(`/appointments/barber/${barberId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
+      const endpoints = [
+        `/appointments/restaurateurs/${restaurateurs}`,
+        `/appointments/restaurateur/${restaurateurs}`,
+        `/appointments?restaurateurs_id=${restaurateurs}`,
+        `/appointments?restaurateur_id=${restaurateurs}`,
+      ];
+
+      for (const endpoint of endpoints) {
+        try {
+          const response = await api.get(endpoint, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          setDebugInfo({
+            lastRequest: { endpoint },
+            lastResponse: response.data,
+          });
+
+          if (response.status === 200) {
+            const appointmentsData =
+              response.data?.data ||
+              (Array.isArray(response.data) ? response.data : []);
+            setAppointments(appointmentsData);
+            return;
+          }
+        } catch (err) {
+          setDebugInfo((prev) => ({
+            ...prev,
+            lastRequest: { endpoint },
+            lastResponse: err.response?.data || err.message,
+          }));
+          console.warn(`Failed to load appointments from ${endpoint}:`, err);
         }
-      });
-
-      if (response.status === 200) {
-        setAppointments(response.data.data || []);
       }
+
+      setAppointments([]);
     } catch (error) {
-      console.error('Error fetching appointments:', error);
+      console.error(
+        "Error fetching appointments:",
+        error,
+        error.response?.data,
+      );
+      setAppointments([]);
     } finally {
       setIsLoading(false);
     }
@@ -307,11 +377,11 @@ export default function BarberDashboard() {
   // Removed fetchAllServiceRequests as it's no longer needed
 
   const fetchUserById = async () => {
-    const token = localStorage.getItem('access_token');
+    const token = sessionStorage.getItem("access_token");
     const decode = jwtDecode(token);
     const response = await api.get(`/users/${decode.id}`);
     if (response.status === 200) {
-      setBarberInfo(response.data.data);
+      setRestaurantInfo(response.data.data);
     }
   };
 
@@ -319,14 +389,14 @@ export default function BarberDashboard() {
     const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
   const handleServiceChange = (e) => {
     const { name, value } = e.target;
     setServiceDataForm((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
   const renderDashboard = () => (
@@ -345,8 +415,9 @@ export default function BarberDashboard() {
             <Card.Body>
               <h3>
                 {
-                  appointments.filter((a) => a.status === 'confirmed' || a.status === 'completed')
-                    .length
+                  appointments.filter(
+                    (a) => a.status === "confirmed" || a.status === "completed",
+                  ).length
                 }
               </h3>
               <p>Confirmed/Completed</p>
@@ -356,7 +427,9 @@ export default function BarberDashboard() {
         <Col md={3}>
           <Card className="text-center bg-warning text-white">
             <Card.Body>
-              <h3>{appointments.filter((a) => a.status === 'pending').length}</h3>
+              <h3>
+                {appointments.filter((a) => a.status === "pending").length}
+              </h3>
               <p>Pending</p>
             </Card.Body>
           </Card>
@@ -364,7 +437,13 @@ export default function BarberDashboard() {
         <Col md={3}>
           <Card className="text-center bg-info text-white">
             <Card.Body>
-              <h3>Rs.{appointments.reduce((total, app) => total + parseInt(app.price || 0), 0)}</h3>
+              <h3>
+                Rs.
+                {appointments.reduce(
+                  (total, app) => total + parseInt(app.price || 0),
+                  0,
+                )}
+              </h3>
               <p>Est. Revenue</p>
             </Card.Body>
           </Card>
@@ -412,17 +491,19 @@ export default function BarberDashboard() {
                     <td>{appointment.client_name}</td>
                     <td>{appointment.service_name}</td>
                     <td>
-                      {new Date(appointment.date).toLocaleString('en-US', {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        hour12: true
+                      {new Date(appointment.date).toLocaleString("en-US", {
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: true,
                       })}
                     </td>
                     <td>
-                      <Badge bg={getStatusVariant(appointment.status)}>{appointment.status}</Badge>
+                      <Badge bg={getStatusVariant(appointment.status)}>
+                        {appointment.status}
+                      </Badge>
                     </td>
                     <td>{appointment.duration} min</td>
                     <td>Rs. {appointment.price}</td>
@@ -431,7 +512,7 @@ export default function BarberDashboard() {
                         variant="success"
                         size="sm"
                         className="me-1"
-                        disabled={appointment.status !== 'pending'}
+                        disabled={appointment.status !== "pending"}
                         onClick={() => handleConfirmAppointment(appointment.id)}
                       >
                         <FaCheck /> Confirm
@@ -440,7 +521,8 @@ export default function BarberDashboard() {
                         variant="danger"
                         size="sm"
                         disabled={
-                          appointment.status === 'completed' || appointment.status === 'cancelled'
+                          appointment.status === "completed" ||
+                          appointment.status === "cancelled"
                         }
                         onClick={() => handleCancelAppointment(appointment.id)}
                       >
@@ -451,14 +533,18 @@ export default function BarberDashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-4">
+                  <td colSpan="7" className="text-center py-5">
                     {isLoading ? (
                       <div>
-                        <Spinner animation="border" size="sm" className="me-2" />
+                        <Spinner
+                          animation="border"
+                          size="sm"
+                          className="me-2"
+                        />
                         Loading appointments...
                       </div>
                     ) : (
-                      'No appointments found. Your schedule is clear!'
+                      "No appointments found. Your schedule is clear!"
                     )}
                   </td>
                 </tr>
@@ -474,7 +560,9 @@ export default function BarberDashboard() {
     <div>
       <div className="mb-4">
         <h1 className="display-5 fw-bold text-dark mb-2">Appointments</h1>
-        <p className="text-muted">Manage all your scheduled appointments and bookings.</p>
+        <p className="text-muted">
+          Manage all your scheduled appointments and bookings.
+        </p>
       </div>
 
       <Card className="shadow-sm border-0 mb-4">
@@ -529,20 +617,24 @@ export default function BarberDashboard() {
                             <FaUser className="text-primary" />
                           </div>
                           <div>
-                            <div className="fw-medium">{appointment.client_name}</div>
-                            <div className="small text-muted">ID: {appointment.client_id}</div>
+                            <div className="fw-medium">
+                              {appointment.client_name}
+                            </div>
+                            <div className="small text-muted">
+                              ID: {appointment.client_id}
+                            </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-4 py-3">{appointment.service_name}</td>
                       <td className="px-4 py-3">
-                        {new Date(appointment.date).toLocaleString('en-US', {
-                          year: 'numeric',
-                          month: 'short',
-                          day: 'numeric',
-                          hour: '2-digit',
-                          minute: '2-digit',
-                          hour12: true
+                        {new Date(appointment.date).toLocaleString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: true,
                         })}
                       </td>
                       <td className="px-4 py-3">{appointment.duration} min</td>
@@ -553,33 +645,39 @@ export default function BarberDashboard() {
                         </Badge>
                       </td>
                       <td className="px-4 py-3">
-                        {appointment.status === 'pending' && (
+                        {appointment.status === "pending" && (
                           <Button
                             variant="success"
                             size="sm"
                             className="me-1 mb-1"
-                            onClick={() => handleConfirmAppointment(appointment.id)}
+                            onClick={() =>
+                              handleConfirmAppointment(appointment.id)
+                            }
                           >
                             <FaCheck className="me-1" /> Confirm
                           </Button>
                         )}
-                        {appointment.status === 'confirmed' && (
+                        {appointment.status === "confirmed" && (
                           <Button
                             variant="primary"
                             size="sm"
                             className="me-1 mb-1"
-                            onClick={() => handleCompleteAppointment(appointment.id)}
+                            onClick={() =>
+                              handleCompleteAppointment(appointment.id)
+                            }
                           >
                             <FaCheck className="me-1" /> Complete
                           </Button>
                         )}
-                        {(appointment.status === 'pending' ||
-                          appointment.status === 'confirmed') && (
+                        {(appointment.status === "pending" ||
+                          appointment.status === "confirmed") && (
                           <Button
                             variant="danger"
                             size="sm"
                             className="mb-1"
-                            onClick={() => handleCancelAppointment(appointment.id)}
+                            onClick={() =>
+                              handleCancelAppointment(appointment.id)
+                            }
                           >
                             <FaTimes className="me-1" /> Cancel
                           </Button>
@@ -591,9 +689,20 @@ export default function BarberDashboard() {
                   <tr>
                     <td colSpan="7" className="text-center py-5">
                       <div className="my-4">
-                        <FaCalendarAlt className="text-muted mb-3" style={{ fontSize: '2rem' }} />
+                        <FaCalendarAlt
+                          className="text-muted mb-3"
+                          style={{ fontSize: "2rem" }}
+                        />
                         <h5>No appointments found</h5>
                         <p className="text-muted">Your schedule is clear!</p>
+                        {debugInfo.lastResponse && (
+                          <div className="mt-3 text-start small text-muted">
+                            <strong>Debug info:</strong>
+                            <pre className="mb-0">
+                              {JSON.stringify(debugInfo, null, 2)}
+                            </pre>
+                          </div>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -616,7 +725,7 @@ export default function BarberDashboard() {
             <h2>Services</h2>
             <p className="text-muted">Manage your service offerings</p>
           </div>
-          <Button variant="primary" onClick={() => setShow(true)}>
+          <Button variant="primary" onClick={handleOpenAddService}>
             <Plus size={20} /> Add New Service
           </Button>
         </div>
@@ -703,7 +812,7 @@ export default function BarberDashboard() {
                   onChange={handleInputChange}
                 />
               </Form.Group>
-            </Col>{' '}
+            </Col>{" "}
             <Col md={6}>
               <Form.Group className="mb-3">
                 <Form.Label>Password</Form.Label>
@@ -718,7 +827,7 @@ export default function BarberDashboard() {
             </Col>
           </Row>
 
-          <Button variant="primary" onClick={handleUpdateBarber}>
+          <Button variant="primary" onClick={handleUpdateRestaurateur}>
             Save Settings
           </Button>
         </Form>
@@ -728,13 +837,13 @@ export default function BarberDashboard() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'dashboard':
+      case "dashboard":
         return renderDashboard();
-      case 'appointments':
+      case "appointments":
         return renderAppointments();
-      case 'services':
+      case "services":
         return renderServices();
-      case 'settings':
+      case "settings":
         return renderSettings();
       default:
         return renderDashboard();
@@ -744,35 +853,37 @@ export default function BarberDashboard() {
     fetchUserById();
     getServices();
     fetchAppointments();
+    const appointmentPoll = setInterval(fetchAppointments, 5000);
+    return () => clearInterval(appointmentPoll);
   }, []);
   useEffect(() => {
-    if (barberInfo) {
+    if (restaurateurInfo) {
       setFormData({
-        first_name: barberInfo.first_name,
-        last_name: barberInfo.last_name,
-        email: barberInfo.email,
-        password: '',
-        phone_number: barberInfo.phone_number
+        first_name: restaurateurInfo.first_name,
+        last_name: restaurateurInfo.last_name,
+        email: restaurateurInfo.email,
+        password: "",
+        phone_number: restaurateurInfo.phone_number,
       });
     }
-  }, [barberInfo]);
+  }, [restaurateurInfo]);
   useEffect(() => {
     if (selectedService) {
       setServiceDataForm({
-        name: selectedService.name || '',
-        price: selectedService.price || '',
+        name: selectedService.name || "",
+        price: selectedService.price || "",
 
-        duration: selectedService.duration || ''
+        duration: selectedService.duration || "",
       });
     }
   }, [selectedService]);
   return (
-    <div className="d-flex" style={{ minHeight: '100vh' }}>
+    <div className="d-flex" style={{ minHeight: "100vh" }}>
       {/* Alert message */}
       {showAlert && (
         <div
           className={`position-fixed top-0 start-50 translate-middle-x p-3 mt-4 alert alert-${alertVariant} alert-dismissible fade show`}
-          style={{ zIndex: 1050, maxWidth: '500px' }}
+          style={{ zIndex: 1050, maxWidth: "500px" }}
           role="alert"
         >
           {alertMessage}
@@ -785,54 +896,62 @@ export default function BarberDashboard() {
         </div>
       )}
       {/* Sidebar */}
-      <div className="bg-dark text-white" style={{ width: '250px', minHeight: '100vh' }}>
+      <div
+        className="bg-dark text-white"
+        style={{ width: "250px", minHeight: "100vh" }}
+      >
         <div className="p-3">
           <h4 className="mb-4">
             <FaCut className="me-2" />
-            Barber Dashboard
+            Restaurateurs Dashboard
           </h4>
           <Nav className="flex-column">
             <Nav.Link
-              className={`text-white mb-2 ${activeTab === 'dashboard' ? 'bg-primary rounded' : ''}`}
-              onClick={() => setActiveTab('dashboard')}
-              style={{ cursor: 'pointer' }}
+              className={`text-white mb-2 ${activeTab === "dashboard" ? "bg-primary rounded" : ""}`}
+              onClick={() => setActiveTab("dashboard")}
+              style={{ cursor: "pointer" }}
             >
               <FaTachometerAlt className="me-2" />
               Dashboard
             </Nav.Link>
             <Nav.Link
               className={`text-white mb-2 ${
-                activeTab === 'appointments' ? 'bg-primary rounded' : ''
+                activeTab === "appointments" ? "bg-primary rounded" : ""
               }`}
-              onClick={() => setActiveTab('appointments')}
-              style={{ cursor: 'pointer' }}
+              onClick={() => setActiveTab("appointments")}
+              style={{ cursor: "pointer" }}
             >
               <FaCalendarAlt className="me-2" />
               Appointments
-              {appointments.filter((a) => a.status === 'pending').length > 0 && (
+              {appointments.filter((a) => a.status === "pending").length >
+                0 && (
                 <Badge bg="warning" className="ms-2">
-                  {appointments.filter((a) => a.status === 'pending').length}
+                  {appointments.filter((a) => a.status === "pending").length}
                 </Badge>
               )}
             </Nav.Link>
             <Nav.Link
-              className={`text-white mb-2 ${activeTab === 'services' ? 'bg-primary rounded' : ''}`}
-              onClick={() => setActiveTab('services')}
-              style={{ cursor: 'pointer' }}
+              className={`text-white mb-2 ${activeTab === "services" ? "bg-primary rounded" : ""}`}
+              onClick={() => setActiveTab("services")}
+              style={{ cursor: "pointer" }}
             >
               <FaCut className="me-2" />
               Services
             </Nav.Link>
             <Nav.Link
-              className={`text-white mb-2 ${activeTab === 'settings' ? 'bg-primary rounded' : ''}`}
-              onClick={() => setActiveTab('settings')}
-              style={{ cursor: 'pointer' }}
+              className={`text-white mb-2 ${activeTab === "settings" ? "bg-primary rounded" : ""}`}
+              onClick={() => setActiveTab("settings")}
+              style={{ cursor: "pointer" }}
             >
               <FaCog className="me-2" />
               Settings
             </Nav.Link>
             <hr />
-            <Nav.Link className="text-white" onClick={handleLogout} style={{ cursor: 'pointer' }}>
+            <Nav.Link
+              className="text-white"
+              onClick={handleLogout}
+              style={{ cursor: "pointer" }}
+            >
               <FaSignOutAlt className="me-2" />
               Logout
             </Nav.Link>
@@ -853,16 +972,21 @@ export default function BarberDashboard() {
             </Navbar.Brand>
             {isLoading && (
               <div className="ms-auto me-3">
-                <Spinner animation="border" size="sm" role="status" className="text-primary me-2" />
+                <Spinner
+                  animation="border"
+                  size="sm"
+                  role="status"
+                  className="text-primary me-2"
+                />
                 <span className="small text-muted">Processing...</span>
               </div>
             )}
             <Navbar.Text className="ms-auto">
-              {new Date().toLocaleDateString('en-US', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
+              {new Date().toLocaleDateString("en-US", {
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric",
               })}
             </Navbar.Text>
           </Container>
@@ -870,7 +994,11 @@ export default function BarberDashboard() {
 
         <Container fluid className="p-4">
           {showAlert && (
-            <Alert variant={alertVariant} dismissible onClose={() => setShowAlert(false)}>
+            <Alert
+              variant={alertVariant}
+              dismissible
+              onClose={() => setShowAlert(false)}
+            >
               {alertMessage}
             </Alert>
           )}
@@ -879,7 +1007,7 @@ export default function BarberDashboard() {
       </div>
 
       {/* Service edit Modal */}
-      <Modal show={show} onHide={handleClose}>
+      <Modal show={showEditServiceModal} onHide={handleCloseEditService}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Services</Modal.Title>
         </Modal.Header>
@@ -889,7 +1017,7 @@ export default function BarberDashboard() {
               <Form.Label className="fw-bold">Title</Form.Label>
               <Form.Control
                 type="text"
-                value={serviceDataForm.name || ''}
+                value={serviceDataForm.name || ""}
                 name="name"
                 onChange={handleServiceChange}
                 autoFocus
@@ -900,7 +1028,7 @@ export default function BarberDashboard() {
               <Form.Label className="fw-bold">Price</Form.Label>
               <Form.Control
                 type="number"
-                value={serviceDataForm?.price || ''}
+                value={serviceDataForm?.price || ""}
                 onChange={handleServiceChange}
                 name="price"
                 autoFocus
@@ -914,14 +1042,14 @@ export default function BarberDashboard() {
                 onChange={handleServiceChange}
                 name="duration"
                 autoFocus
-                value={serviceDataForm?.duration || ''}
+                value={serviceDataForm?.duration || ""}
                 required
               />
             </Form.Group>
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleClose}>
+          <Button variant="secondary" onClick={handleCloseEditService}>
             Close
           </Button>
           <Button variant="primary" onClick={handleUpdateService}>
@@ -930,7 +1058,7 @@ export default function BarberDashboard() {
         </Modal.Footer>
       </Modal>
       {/* add services */}
-      <Modal show={show} onHide={setShow}>
+      <Modal show={showAddServiceModal} onHide={handleCloseAddService}>
         <Modal.Header closeButton>
           <Modal.Title>Add New Service</Modal.Title>
         </Modal.Header>
@@ -945,7 +1073,7 @@ export default function BarberDashboard() {
                     placeholder="Enter the title"
                     name="name"
                     onChange={handleServiceChange}
-                    value={serviceDataForm.title}
+                    value={serviceDataForm.name}
                     required
                   />
                 </Form.Group>
@@ -980,7 +1108,7 @@ export default function BarberDashboard() {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShow(false)}>
+          <Button variant="secondary" onClick={handleCloseAddService}>
             Cancel
           </Button>
           <Button variant="primary" onClick={handleAddService}>

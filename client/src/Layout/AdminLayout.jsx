@@ -6,7 +6,7 @@ export default function AdminLayout() {
   const navElements = [
     { id: 1, name: "Dashboard" },
     { id: 2, name: "Clients" },
-    { id: 3, name: "Barber-List" },
+    { id: 3, name: "Restaurant-List" },
     { id: 4, name: "Services" },
     { id: 5, name: "Settings" },
     { id: 6, name: "Logout" },
@@ -26,7 +26,7 @@ export default function AdminLayout() {
                   className="nav-link text-light"
                   style={{ cursor: "pointer" }}
                   onClick={() => {
-                    localStorage.removeItem("access_token"); // Clear token
+                    sessionStorage.removeItem("access_token"); // Clear token
                     navigate("/login"); // Redirect to login page
                   }}
                 >
@@ -44,7 +44,7 @@ export default function AdminLayout() {
                 >
                   {navItem.name}
                 </NavLink>
-              )
+              ),
             )}
           </nav>
         </div>

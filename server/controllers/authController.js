@@ -38,8 +38,8 @@ export const register = async (req, res) => {
     let role = "client"; // default role
 
     const allowedRoles = isAdmin
-      ? ["client", "barber", "admin"]
-      : ["client", "barber"];
+      ? ["client", "restaurateurs", "admin"]
+      : ["client", "restaurateurs"];
 
     if (req.body.role) {
       if (allowedRoles.includes(req.body.role)) {
@@ -57,6 +57,12 @@ export const register = async (req, res) => {
       phone_number: req.body.phone_number,
       password: hashedPassword,
       role,
+      // Include location data if provided (especially for restaurateurs)
+      latitude: req.body.latitude || null,
+      longitude: req.body.longitude || null,
+      location_name: req.body.location_name || null,
+      seat_capacity:
+        role === "restaurateurs" ? req.body.seat_capacity || 10 : null,
     };
 
     // Save the new user
@@ -125,7 +131,7 @@ export const createToken = (user) => {
       role: user.role,
     },
     process.env.JWT_SECRET,
-    { expiresIn: "1h" }
+    { expiresIn: "1h" },
   );
 };
 
