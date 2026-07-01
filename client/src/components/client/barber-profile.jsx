@@ -24,12 +24,10 @@ import {
   FaEnvelope,
   FaClock,
 } from "react-icons/fa";
-import { FiInfo } from "react-icons/fi";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import api from "../../apis/api";
-import SurgePriceConfirmationModal from "./surge-price-modal";
-import PricingBreakdownModal from "./pricing-breakdown";
+import { jwtDecode } from "jwt-decode";
 
 const BarberProfile = ({ barberId }) => {
   const [barber, setBarber] = useState(null);
@@ -49,11 +47,6 @@ const BarberProfile = ({ barberId }) => {
     lastRequest: null,
     lastResponse: null,
   });
-  const [demandInfo, setDemandInfo] = useState(null);
-  const [showSurgePriceModal, setShowSurgePriceModal] = useState(false);
-  const [pendingBookingData, setPendingBookingData] = useState(null);
-  const [showPricingBreakdown, setShowPricingBreakdown] = useState(false);
-  const [pricingService, setPricingService] = useState(null);
 
   useEffect(() => {
     const fetchBarberData = async () => {
@@ -72,20 +65,9 @@ const BarberProfile = ({ barberId }) => {
           setBarber(barberResponse.data.data);
         }
 
-        const servicesResponse = await api.get(
-          `/restaurateurs-services/all?dynamic=true&restaurateurId=${id}`,
-        );
+        const servicesResponse = await api.get(`/restaurateurs-services/all`);
         if (servicesResponse.status === 200) {
-          setServices(
-            Array.isArray(servicesResponse.data)
-              ? servicesResponse.data
-              : servicesResponse.data.services || [],
-          );
-          setDemandInfo(
-            servicesResponse.data && servicesResponse.data.demandInfo
-              ? servicesResponse.data.demandInfo
-              : null,
-          );
+          setServices(servicesResponse.data);
         }
 
         fetchAppointments(id);
@@ -122,7 +104,6 @@ const BarberProfile = ({ barberId }) => {
         });
         if (response.status === 200) {
           setAppointments(response.data.data || []);
-          return;
         } else {
           console.warn(
             "Non-200 response fetching barber profile appointments:",
@@ -130,7 +111,6 @@ const BarberProfile = ({ barberId }) => {
             response.data,
           );
           setAppointments([]);
-          return;
         }
       } catch (err) {
         console.error(
@@ -138,62 +118,11 @@ const BarberProfile = ({ barberId }) => {
           err,
           err.response?.data,
         );
-        const serverMessage =
-          err.response?.data?.message || err.response?.data || err.message;
         setDebugInfo({
           lastRequest: { endpoint: `/appointments/restaurateurs/${barberId}` },
           lastResponse: err.response?.data || err.message,
         });
-
-        // If backend expects the id somewhere else, try some safe fallback endpoints
-        const msg =
-          typeof serverMessage === "string"
-            ? serverMessage
-            : JSON.stringify(serverMessage || "");
-        if (
-          msg.includes("restaurateurs ID is required") ||
-          msg.includes("restaurateur id") ||
-          msg.includes("specify the alias")
-        ) {
-          const fallbacks = [
-            `/appointments?restaurateurs_id=${barberId}`,
-            `/appointments?restaurateur_id=${barberId}`,
-            `/appointments/restaurateur/${barberId}`,
-            `/appointments?restaurateurs=${barberId}`,
-          ];
-
-          for (const ep of fallbacks) {
-            try {
-              const r = await api.get(ep, {
-                headers: {
-                  Authorization: tokenForFetch
-                    ? `Bearer ${tokenForFetch}`
-                    : undefined,
-                },
-              });
-              setDebugInfo((d) => ({
-                ...d,
-                fallbackAttempt: { endpoint: ep, response: r.data },
-              }));
-              if (r.status === 200) {
-                setAppointments(r.data.data || r.data || []);
-                return;
-              }
-            } catch (e2) {
-              setDebugInfo((d) => ({
-                ...d,
-                fallbackAttempt: {
-                  endpoint: ep,
-                  error: e2.response?.data || e2.message,
-                },
-              }));
-              // continue trying next fallback
-            }
-          }
-        }
-
-        // If we reach here, no fallback succeeded
-        setAppointments([]);
+        throw err;
       }
     } catch (error) {
       console.error(
@@ -217,73 +146,15 @@ const BarberProfile = ({ barberId }) => {
       setBookingError(null);
 
       const token = sessionStorage.getItem("access_token");
-      if (!token) {
-        setBookingError("Please log in before booking an appointment.");
-        return;
-      }
-
-      if (!barber?.id) {
-        setBookingError(
-          "Unable to determine the selected restaurant. Please refresh and try again.",
-        );
-        return;
-      }
+      const decodedToken = jwtDecode(token);
 
       const appointmentData = {
         service_id: selectedService.id,
-        date:
-          appointmentDate instanceof Date
-            ? appointmentDate.toISOString()
-            : appointmentDate,
+        date: appointmentDate,
         restaurateurs_id: barber.id,
-        restaurateur_id: barber.id,
         clientType: "regular",
       };
 
-      if (isFullyBooked) {
-        setBookingError(
-          "This restaurant is fully booked right now. Please choose a different time or restaurant.",
-        );
-        return;
-      }
-
-      // Check if dynamic pricing is applied (surge pricing)
-      if (
-        selectedService.dynamic_price &&
-        selectedService.dynamic_price > selectedService.original_price
-      ) {
-        // Store the booking data and show the surge price modal for confirmation
-        setPendingBookingData({
-          appointmentData,
-          service: selectedService,
-          restaurantName: barber.first_name,
-          originalPrice: selectedService.original_price,
-          dynamicPrice: selectedService.dynamic_price,
-          multiplier: selectedService.multiplier || 1,
-          utilization: selectedService.utilization || 0,
-        });
-        setShowSurgePriceModal(true);
-        setBookingInProgress(false);
-        return;
-      }
-
-      // No surge pricing, proceed directly with booking
-      await submitAppointment(appointmentData);
-    } catch (error) {
-      console.error("Error preparing appointment:", error);
-      setBookingError(
-        error.response?.data?.message ||
-          error.response?.data?.error ||
-          error.message ||
-          "Failed to prepare appointment. Please try again.",
-      );
-      setBookingInProgress(false);
-    }
-  };
-
-  const submitAppointment = async (appointmentData) => {
-    try {
-      setBookingInProgress(true);
       const tokenForPost = sessionStorage.getItem("access_token");
       const response = await api.post("/appointments", appointmentData, {
         headers: {
@@ -293,49 +164,32 @@ const BarberProfile = ({ barberId }) => {
 
       if (response.status === 201) {
         setBookingSuccess(true);
+
+        // Update appointments list
         fetchAppointments(barber.id);
+
+        // Close modal after 3 seconds on success
         setTimeout(() => {
           setShowBookingModal(false);
           setBookingSuccess(false);
-          setBookingError(null);
           setSelectedService(null);
-          setPendingBookingData(null);
-          setShowSurgePriceModal(false);
         }, 3000);
       }
     } catch (error) {
       console.error("Error booking appointment:", error);
-      const serverMessage =
+      setBookingError(
         error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
-        "Failed to book appointment. Please try again.";
-      setBookingError(serverMessage);
+          "Failed to book appointment. Please try again.",
+      );
     } finally {
       setBookingInProgress(false);
     }
   };
 
-  const handleSurgePriceConfirm = async () => {
-    if (pendingBookingData) {
-      await submitAppointment(pendingBookingData.appointmentData);
-    }
-  };
-
-  const handleSurgePriceCancel = () => {
-    setShowSurgePriceModal(false);
-    setPendingBookingData(null);
-  };
-
-  const handleShowPricingBreakdown = (service) => {
-    setPricingService(service);
-    setShowPricingBreakdown(true);
-  };
-
   const filterAvailableTime = (time) => {
     const selectedHour = time.getHours();
-    // Only allow hours between 9 AM and 6 PM
-    return selectedHour >= 9 && selectedHour < 18;
+    // Only allow hours between 6 AM and 6 PM
+    return selectedHour >= 6 && selectedHour < 18;
   };
 
   const isTimeSlotAvailable = (date) => {
@@ -368,16 +222,6 @@ const BarberProfile = ({ barberId }) => {
 
     return true;
   };
-
-  const activeAppointmentsCount = appointments.filter((appointment) =>
-    ["pending", "accepted", "in_progress"].includes(appointment.status),
-  ).length;
-  const seatCapacity = barber?.seat_capacity ?? null;
-  const availableSeats =
-    seatCapacity !== null
-      ? Math.max(seatCapacity - activeAppointmentsCount, 0)
-      : null;
-  const isFullyBooked = availableSeats === 0 && seatCapacity !== null;
 
   if (loading) {
     return (
@@ -462,18 +306,6 @@ const BarberProfile = ({ barberId }) => {
                   <FaClock className="text-primary me-3" />
                   <span>Working hours: 9:00 AM - 6:00 PM</span>
                 </ListGroup.Item>
-
-                {seatCapacity !== null && (
-                  <ListGroup.Item className="d-flex align-items-center px-0 py-2 border-0">
-                    <FaUser className="text-primary me-3" />
-                    <span>
-                      Seats available: {availableSeats} / {seatCapacity}{" "}
-                      {isFullyBooked && (
-                        <strong className="text-danger">(Fully booked)</strong>
-                      )}
-                    </span>
-                  </ListGroup.Item>
-                )}
               </ListGroup>
             </Card.Body>
           </Card>
@@ -511,45 +343,18 @@ const BarberProfile = ({ barberId }) => {
                                     <Badge bg="light" text="dark">
                                       Rs. {service.price}
                                     </Badge>
-                                    {service.dynamic_price &&
-                                      service.dynamic_price !==
-                                        service.original_price && (
-                                        <Badge
-                                          bg="warning"
-                                          className="ms-2"
-                                          text="dark"
-                                        >
-                                          Surge x
-                                          {(
-                                            service.dynamic_price /
-                                            service.original_price
-                                          ).toFixed(2)}
-                                        </Badge>
-                                      )}
                                   </div>
                                 </div>
                               </div>
                             </Col>
                             <Col xs={4} className="text-end">
-                              <div className="d-flex gap-2 justify-content-end">
-                                <Button
-                                  variant="outline-info"
-                                  size="sm"
-                                  title="View pricing details"
-                                  onClick={() =>
-                                    handleShowPricingBreakdown(service)
-                                  }
-                                >
-                                  <FiInfo />
-                                </Button>
-                                <Button
-                                  variant="outline-primary"
-                                  size="sm"
-                                  onClick={() => handleServiceSelect(service)}
-                                >
-                                  <FaCalendarAlt className="me-1" /> Book Now
-                                </Button>
-                              </div>
+                              <Button
+                                variant="outline-primary"
+                                size="sm"
+                                onClick={() => handleServiceSelect(service)}
+                              >
+                                <FaCalendarAlt className="me-1" /> Book Now
+                              </Button>
                             </Col>
                           </Row>
                         </ListGroup.Item>
@@ -603,26 +408,8 @@ const BarberProfile = ({ barberId }) => {
                   </p>
                   <p className="mb-0">
                     <strong>Price:</strong> Rs. {selectedService.price}
-                    {selectedService.dynamic_price &&
-                      selectedService.dynamic_price !==
-                        selectedService.original_price && (
-                        <Badge bg="warning" className="ms-2">
-                          Surge x
-                          {(
-                            selectedService.dynamic_price /
-                            selectedService.original_price
-                          ).toFixed(2)}
-                        </Badge>
-                      )}
                   </p>
                 </div>
-              )}
-              {demandInfo && (
-                <Alert variant="warning" className="mt-3">
-                  <strong>High demand notice:</strong> current seat utilization
-                  is {Math.round(demandInfo.utilization * 100)}%, applying a
-                  surge multiplier of {demandInfo.multiplier} to service prices.
-                </Alert>
               )}
 
               <Form.Group className="mb-3">
@@ -669,7 +456,7 @@ const BarberProfile = ({ barberId }) => {
             <Button
               variant="primary"
               onClick={handleBookAppointment}
-              disabled={bookingInProgress || isFullyBooked}
+              disabled={bookingInProgress}
             >
               {bookingInProgress ? (
                 <>
@@ -690,33 +477,6 @@ const BarberProfile = ({ barberId }) => {
           </Modal.Footer>
         )}
       </Modal>
-
-      {/* Surge Price Confirmation Modal */}
-      {pendingBookingData && (
-        <SurgePriceConfirmationModal
-          show={showSurgePriceModal}
-          onConfirm={handleSurgePriceConfirm}
-          onCancel={handleSurgePriceCancel}
-          originalPrice={pendingBookingData.originalPrice}
-          dynamicPrice={pendingBookingData.dynamicPrice}
-          multiplier={pendingBookingData.multiplier}
-          utilization={pendingBookingData.utilization}
-          restaurantName={pendingBookingData.restaurantName}
-          serviceTitle={selectedService?.title || "Service"}
-        />
-      )}
-
-      {/* Pricing Breakdown Modal */}
-      {pricingService && (
-        <PricingBreakdownModal
-          show={showPricingBreakdown}
-          onHide={() => setShowPricingBreakdown(false)}
-          service={pricingService}
-          demandInfo={demandInfo}
-          originalPrice={pricingService.original_price || pricingService.price}
-          dynamicPrice={pricingService.dynamic_price || pricingService.price}
-        />
-      )}
     </Container>
   );
 };

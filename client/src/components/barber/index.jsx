@@ -66,23 +66,11 @@ export default function BarberDashboard() {
   const [services, setServices] = useState([]);
   const [selectedService, setSelectedService] = useState(null);
 
-  const [showAddServiceModal, setShowAddServiceModal] = useState(false);
-  const [showEditServiceModal, setShowEditServiceModal] = useState(false);
-  const handleCloseAddService = () => setShowAddServiceModal(false);
-  const handleCloseEditService = () => setShowEditServiceModal(false);
-  const handleOpenAddService = () => {
-    setSelectedService(null);
-    setServiceDataForm({ name: "", price: "", duration: "" });
-    setShowAddServiceModal(true);
-  };
+  const [show, setShow] = useState(false);
+  const handleClose = () => setShow(!show);
   const handleService = (service) => {
     setSelectedService(service);
-    setServiceDataForm({
-      name: service.name || "",
-      price: service.price || "",
-      duration: service.duration || "",
-    });
-    setShowEditServiceModal(true);
+    setShow(true);
   };
   const getServices = async () => {
     try {
@@ -141,8 +129,8 @@ export default function BarberDashboard() {
     const token = sessionStorage.getItem("access_token");
 
     try {
-      const response = await api.post(
-        "/restaurateurs-services/",
+      const response = await axios.post(
+  "/restaurateurs-services/",
         serviceDataForm,
         {
           headers: {
@@ -151,9 +139,8 @@ export default function BarberDashboard() {
         },
       );
       alert("Service added successfully");
-      setShowAddServiceModal(false);
-      setServiceDataForm({ name: "", price: "", duration: "" });
-      await getServices();
+      setShow(false);
+      location.reload();
     } catch (error) {
       console.error("Error adding service:", error.response?.data || error);
       alert("Failed to add service");
@@ -190,23 +177,15 @@ export default function BarberDashboard() {
     }
   };
   const handleUpdateService = async () => {
-    try {
-      const token = sessionStorage.getItem("access_token");
-      const service = selectedService;
-      await api.put(`/restaurateurs-services/${service.id}`, serviceDataForm, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      setShowEditServiceModal(false);
-      setSelectedService(null);
-      setServiceDataForm({ name: "", price: "", duration: "" });
-      await getServices();
-      alert("Service updated successfully");
-    } catch (error) {
-      console.error("Error updating service:", error.response?.data || error);
-      alert("Failed to update service");
-    }
+    const token = sessionStorage.getItem("access_token");
+    const service = selectedService;
+    await api.put(`/restaurateurs-services/${service.id}`, serviceDataForm, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    setShow(false);
+    await getServices();
   };
 
   // Handle appointment confirmation
@@ -330,45 +309,51 @@ export default function BarberDashboard() {
         `/appointments/restaurateurs/${restaurateurs}`,
         `/appointments/restaurateur/${restaurateurs}`,
         `/appointments?restaurateurs_id=${restaurateurs}`,
-        `/appointments?restaurateur_id=${restaurateurs}`,
       ];
-
-      for (const endpoint of endpoints) {
-        try {
-          const response = await api.get(endpoint, {
+      let lastError = null;
+      try {
+        const response = await api.get(
+          `/appointments/restaurateurs/${restaurateurs}`,
+          {
             headers: { Authorization: `Bearer ${token}` },
-          });
-
-          setDebugInfo({
-            lastRequest: { endpoint },
-            lastResponse: response.data,
-          });
-
-          if (response.status === 200) {
-            const appointmentsData =
-              response.data?.data ||
-              (Array.isArray(response.data) ? response.data : []);
-            setAppointments(appointmentsData);
-            return;
-          }
-        } catch (err) {
-          setDebugInfo((prev) => ({
-            ...prev,
-            lastRequest: { endpoint },
-            lastResponse: err.response?.data || err.message,
-          }));
-          console.warn(`Failed to load appointments from ${endpoint}:`, err);
+          },
+        );
+        setDebugInfo({
+          lastRequest: {
+            endpoint: `/appointments/restaurateurs/${restaurateurs}`,
+          },
+          lastResponse: response.data,
+        });
+        if (response.status === 200) {
+          setAppointments(response.data.data || []);
+        } else {
+          console.warn(
+            "Non-200 response fetching barber appointments:",
+            response.status,
+            response.data,
+          );
+          setAppointments([]);
         }
+      } catch (err) {
+        console.error(
+          "Error fetching barber appointments:",
+          err,
+          err.response?.data,
+        );
+        setDebugInfo({
+          lastRequest: {
+            endpoint: `/appointments/restaurateurs/${restaurateurs}`,
+          },
+          lastResponse: err.response?.data || err.message,
+        });
+        throw err;
       }
-
-      setAppointments([]);
     } catch (error) {
       console.error(
         "Error fetching appointments:",
         error,
         error.response?.data,
       );
-      setAppointments([]);
     } finally {
       setIsLoading(false);
     }
@@ -533,7 +518,7 @@ export default function BarberDashboard() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="7" className="text-center py-5">
+                  <td colSpan="7" className="text-center py-4">
                     {isLoading ? (
                       <div>
                         <Spinner
@@ -695,14 +680,6 @@ export default function BarberDashboard() {
                         />
                         <h5>No appointments found</h5>
                         <p className="text-muted">Your schedule is clear!</p>
-                        {debugInfo.lastResponse && (
-                          <div className="mt-3 text-start small text-muted">
-                            <strong>Debug info:</strong>
-                            <pre className="mb-0">
-                              {JSON.stringify(debugInfo, null, 2)}
-                            </pre>
-                          </div>
-                        )}
                       </div>
                     </td>
                   </tr>
@@ -725,7 +702,7 @@ export default function BarberDashboard() {
             <h2>Services</h2>
             <p className="text-muted">Manage your service offerings</p>
           </div>
-          <Button variant="primary" onClick={handleOpenAddService}>
+          <Button variant="primary" onClick={() => setShow(true)}>
             <Plus size={20} /> Add New Service
           </Button>
         </div>
@@ -853,8 +830,6 @@ export default function BarberDashboard() {
     fetchUserById();
     getServices();
     fetchAppointments();
-    const appointmentPoll = setInterval(fetchAppointments, 5000);
-    return () => clearInterval(appointmentPoll);
   }, []);
   useEffect(() => {
     if (restaurateurInfo) {
@@ -1007,7 +982,7 @@ export default function BarberDashboard() {
       </div>
 
       {/* Service edit Modal */}
-      <Modal show={showEditServiceModal} onHide={handleCloseEditService}>
+      <Modal show={show} onHide={handleClose}>
         <Modal.Header closeButton>
           <Modal.Title>Edit Services</Modal.Title>
         </Modal.Header>
@@ -1049,7 +1024,7 @@ export default function BarberDashboard() {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseEditService}>
+          <Button variant="secondary" onClick={handleClose}>
             Close
           </Button>
           <Button variant="primary" onClick={handleUpdateService}>
@@ -1058,7 +1033,7 @@ export default function BarberDashboard() {
         </Modal.Footer>
       </Modal>
       {/* add services */}
-      <Modal show={showAddServiceModal} onHide={handleCloseAddService}>
+      <Modal show={show} onHide={setShow}>
         <Modal.Header closeButton>
           <Modal.Title>Add New Service</Modal.Title>
         </Modal.Header>
@@ -1073,7 +1048,7 @@ export default function BarberDashboard() {
                     placeholder="Enter the title"
                     name="name"
                     onChange={handleServiceChange}
-                    value={serviceDataForm.name}
+                    value={serviceDataForm.title}
                     required
                   />
                 </Form.Group>
@@ -1108,7 +1083,7 @@ export default function BarberDashboard() {
           </Form>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseAddService}>
+          <Button variant="secondary" onClick={() => setShow(false)}>
             Cancel
           </Button>
           <Button variant="primary" onClick={handleAddService}>
