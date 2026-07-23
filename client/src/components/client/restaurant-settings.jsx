@@ -1,97 +1,111 @@
 import React, { useState, useEffect } from "react";
-import { Card, Form, Button, Alert, Spinner } from "react-bootstrap";
+import { Card, Form, Button, Alert, Spinner, Table, Modal } from "react-bootstrap";
 import api from "../../apis/api";
 import "./settings.css";
 
 const RestaurantSettings = ({ restaurateurId, onCapacityUpdate }) => {
-  const [capacity, setCapacity] = useState(10);
+  const [tables, setTables] = useState([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-  const [originalCapacity, setOriginalCapacity] = useState(10);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [editingTable, setEditingTable] = useState(null);
+  const [formData, setFormData] = useState({ table_number: "", capacity: 1, is_active: true });
 
-  // Fetch current capacity on mount
-  useEffect(() => {
-    const fetchCapacity = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get(
-          `/users/restaurateur/${restaurateurId}/capacity`,
-        );
-        if (response.data.success) {
-          const currentCapacity = response.data.data.seat_capacity;
-          setCapacity(currentCapacity);
-          setOriginalCapacity(currentCapacity);
-        }
-      } catch (err) {
-        console.error("Error fetching capacity:", err);
-        setError("Failed to load current capacity");
-      } finally {
-        setLoading(false);
+  const fetchTables = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/tables/restaurant/${restaurateurId}`);
+      if (response.data.success) {
+        setTables(response.data.data || []);
       }
-    };
+    } catch (err) {
+      console.error("Error fetching tables:", err);
+      setError("Failed to load tables");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     if (restaurateurId) {
-      fetchCapacity();
+      fetchTables();
     }
   }, [restaurateurId]);
 
-  const handleCapacityChange = (e) => {
-    const value = parseInt(e.target.value) || 0;
-    setCapacity(value);
+  const handleAddTable = async () => {
+    if (!formData.table_number || !formData.capacity) {
+      setError("Table number and capacity are required");
+      return;
+    }
+
+    setSaving(true);
     setError("");
-    setSuccess("");
-  };
 
-  const handleSaveCapacity = async () => {
     try {
-      // Validation
-      if (capacity < 1) {
-        setError("Capacity must be at least 1 table");
-        return;
-      }
-      if (capacity > 1000) {
-        setError("Capacity cannot exceed 1000 tables");
-        return;
-      }
-      if (capacity === originalCapacity) {
-        setError("Please change the capacity before saving");
-        return;
-      }
+      const response = await api.post("/tables", {
+        restaurateur_id: restaurateurId,
+        table_number: formData.table_number,
+        capacity: formData.capacity,
+        is_active: formData.is_active,
+      });
 
-      setSaving(true);
-      setError("");
-      setSuccess("");
-
-      const response = await api.put(
-        `/users/restaurateur/${restaurateurId}/capacity`,
-        {
-          seat_capacity: capacity,
-        },
-      );
+      console.log("[Tables] create response", response.status, response.data);
 
       if (response.data.success) {
-        setOriginalCapacity(capacity);
-        setSuccess(`Capacity successfully updated to ${capacity} tables`);
-        if (onCapacityUpdate) {
-          onCapacityUpdate(capacity);
-        }
-        // Clear success message after 3 seconds
-        setTimeout(() => setSuccess(""), 3000);
+        setSuccess(`Table ${formData.table_number} added successfully`);
+        setShowAddModal(false);
+        setFormData({ table_number: "", capacity: 1, is_active: true });
+        fetchTables();
+      } else {
+        setError(response.data.message || "Failed to add table");
       }
     } catch (err) {
-      console.error("Error updating capacity:", err);
-      setError(err.response?.data?.message || "Failed to update capacity");
+      setError(err.response?.data?.message || "Failed to add table");
+      console.error("[Tables] create error", err.response?.data || err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleReset = () => {
-    setCapacity(originalCapacity);
+  const handleEditTable = async () => {
+    if (!editingTable) return;
+
+    setSaving(true);
     setError("");
-    setSuccess("");
+
+    try {
+      const response = await api.put(`/tables/${editingTable.id}`, {
+        table_number: editingTable.table_number,
+        capacity: editingTable.capacity,
+        is_active: editingTable.is_active,
+      });
+
+      if (response.data.success) {
+        setSuccess(`Table ${editingTable.table_number} updated successfully`);
+        setEditingTable(null);
+        fetchTables();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to update table");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteTable = async (tableId, tableNumber) => {
+    if (!window.confirm(`Delete Table ${tableNumber}?`)) return;
+
+    try {
+      const response = await api.delete(`/tables/${tableId}`);
+      if (response.data.success) {
+        setSuccess(`Table ${tableNumber} deleted successfully`);
+        fetchTables();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to delete table");
+    }
   };
 
   if (loading) {
@@ -106,87 +120,162 @@ const RestaurantSettings = ({ restaurateurId, onCapacityUpdate }) => {
     );
   }
 
+  const totalCapacity = tables.reduce((sum, t) => sum + Number(t.capacity), 0);
+
   return (
     <Card className="settings-card">
       <Card.Header className="settings-header">
-        <h5>Restaurant Table Capacity</h5>
-        <p className="text-muted">
-          Configure the number of tables available for reservations
-        </p>
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h5>Restaurant Tables</h5>
+            <p className="text-muted">
+              Manage your tables and their capacities
+            </p>
+          </div>
+          <Button variant="primary" size="sm" onClick={() => setShowAddModal(true)}>
+            Add Table
+          </Button>
+        </div>
       </Card.Header>
       <Card.Body>
         {error && <Alert variant="danger">{error}</Alert>}
         {success && <Alert variant="success">{success}</Alert>}
 
-        <Form>
-          <Form.Group className="mb-3">
-            <Form.Label className="fw-bold">Number of Tables</Form.Label>
-            <Form.Control
-              type="number"
-              min="1"
-              max="1000"
-              value={capacity}
-              onChange={handleCapacityChange}
-              placeholder="Enter number of tables"
-              className="capacity-input"
-            />
-            <Form.Text className="d-block mt-2">
-              Current: <strong>{originalCapacity} tables</strong>
-            </Form.Text>
-            <Form.Text className="d-block text-muted">
-              This capacity directly affects:
-              <ul className="mt-2 mb-0">
-                <li>Maximum concurrent appointments</li>
-                <li>Dynamic pricing surge calculation</li>
-                <li>Seat availability for clients</li>
-              </ul>
-            </Form.Text>
-          </Form.Group>
+        <div className="mb-3">
+          <strong>Total Capacity: </strong>{tables.length > 0 ? `${totalCapacity} guests across ${tables.length} tables` : "No tables configured"}
+        </div>
 
-          <div className="d-flex gap-2">
-            <Button
-              variant="primary"
-              onClick={handleSaveCapacity}
-              disabled={saving || capacity === originalCapacity}
-              className="capacity-save-btn"
-            >
-              {saving ? (
-                <>
-                  <Spinner
-                    as="span"
-                    animation="border"
-                    size="sm"
-                    role="status"
-                    aria-hidden="true"
-                    className="me-2"
+        {tables.length === 0 ? (
+          <Alert variant="info">
+            No tables configured yet. Click "Add Table" to create your first table.
+          </Alert>
+        ) : (
+          <Table responsive>
+            <thead>
+              <tr>
+                <th>Table #</th>
+                <th>Capacity</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tables.map((table) => (
+                <tr key={table.id}>
+                  <td>{table.table_number}</td>
+                  <td>{table.capacity}</td>
+                  <td>
+                    <span className={`badge ${table.is_active ? "bg-success" : "bg-secondary"}`}>
+                      {table.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </td>
+                  <td>
+                    <Button
+                      variant="outline-primary"
+                      size="sm"
+                      className="me-2"
+                      onClick={() => setEditingTable(table)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      variant="outline-danger"
+                      size="sm"
+                      onClick={() => handleDeleteTable(table.id, table.table_number)}
+                    >
+                      Delete
+                    </Button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        )}
+
+        {/* Add Table Modal */}
+        <Modal show={showAddModal} onHide={() => setShowAddModal(false)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Add Table</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <Form.Group className="mb-3">
+              <Form.Label>Table Number</Form.Label>
+              <Form.Control
+                type="text"
+                placeholder="e.g. A1, B2, 1, 2, 3"
+                value={formData.table_number}
+                onChange={(e) => setFormData({ ...formData, table_number: e.target.value })}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Capacity (guests)</Form.Label>
+              <Form.Control
+                type="number"
+                min="1"
+                value={formData.capacity}
+                onChange={(e) => setFormData({ ...formData, capacity: Number(e.target.value) })}
+              />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Check
+                type="checkbox"
+                label="Active"
+                checked={formData.is_active}
+                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+              />
+            </Form.Group>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
+            <Button variant="primary" onClick={handleAddTable} disabled={saving}>
+              {saving ? "Saving..." : "Add Table"}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Edit Table Modal */}
+        <Modal show={!!editingTable} onHide={() => setEditingTable(null)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Edit Table</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {editingTable && (
+              <>
+                <Form.Group className="mb-3">
+                  <Form.Label>Table Number</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={editingTable.table_number}
+                    onChange={(e) => setEditingTable({ ...editingTable, table_number: e.target.value })}
                   />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Capacity (guests)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    min="1"
+                    value={editingTable.capacity}
+                    onChange={(e) => setEditingTable({ ...editingTable, capacity: Number(e.target.value) })}
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Check
+                    type="checkbox"
+                    label="Active"
+                    checked={editingTable.is_active}
+                    onChange={(e) => setEditingTable({ ...editingTable, is_active: e.target.checked })}
+                  />
+                </Form.Group>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setEditingTable(null)}>Cancel</Button>
+            <Button variant="primary" onClick={handleEditTable} disabled={saving}>
+              {saving ? "Saving..." : "Save Changes"}
             </Button>
-            <Button
-              variant="outline-secondary"
-              onClick={handleReset}
-              disabled={capacity === originalCapacity}
-            >
-              Reset
-            </Button>
-          </div>
-        </Form>
-
-        <Card className="mt-4 bg-light">
-          <Card.Body>
-            <h6 className="mb-3">How Capacity Affects Pricing</h6>
-            <p className="small mb-0">
-              When demand is high (over 60% of your tables are reserved), prices
-              automatically increase to encourage optimal booking distribution.
-              This prevents overbooking and ensures better service quality for
-              clients.
-            </p>
-          </Card.Body>
-        </Card>
+          </Modal.Footer>
+        </Modal>
       </Card.Body>
     </Card>
   );

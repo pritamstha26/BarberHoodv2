@@ -2,21 +2,21 @@
 
 module.exports = {
   up: async (queryInterface, Sequelize) => {
-    // Rename table BarberServices to RestaurateurServices (if it exists)
+    // Rename table RestaurantServices to RestaurateurServices (if it exists)
     const tableNames = await queryInterface.showAllTables();
-    if (tableNames.includes("BarberServices")) {
+    if (tableNames.includes("RestaurantServices")) {
       await queryInterface.renameTable(
-        "BarberServices",
+        "RestaurantServices",
         "RestaurateurServices",
       );
     }
 
-    // Rename column barberId to restaurateurId in AppointmentModels if it exists
+    // Rename column restaurateurId to restaurateurId in AppointmentModels if it exists
     const tableDesc = await queryInterface.describeTable("AppointmentModels");
-    if (tableDesc.barberId) {
+    if (tableDesc.restaurateurId) {
       await queryInterface.renameColumn(
         "AppointmentModels",
-        "barberId",
+        "restaurateurId",
         "restaurateurId",
       );
     }
@@ -29,7 +29,7 @@ module.exports = {
       await queryInterface.renameColumn(
         "AppointmentModels",
         "restaurateurId",
-        "barberId",
+        "restaurateurId",
       );
     }
 
@@ -37,7 +37,7 @@ module.exports = {
     if (tableNames.includes("RestaurateurServices")) {
       await queryInterface.renameTable(
         "RestaurateurServices",
-        "BarberServices",
+        "RestaurantServices",
       );
     }
   },

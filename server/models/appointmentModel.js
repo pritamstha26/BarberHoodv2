@@ -37,6 +37,36 @@ const AppointmentModel = sequelize.define("AppointmentModel", {
       model: UsersModel,
       key: "id",
     },
+  },booked_price: {
+     type: DataTypes.INTEGER,
+     allowNull: false
+   },
+  party_size: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    defaultValue: 1,
+  },
+  table_id: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: "tables",
+      key: "id",
+    },
+    onDelete: "SET NULL",
+    onUpdate: "CASCADE",
+  },
+  end_time: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  extended_until: {
+    type: DataTypes.DATE,
+    allowNull: true,
+  },
+  extension_status: {
+    type: DataTypes.ENUM("none", "pending", "accepted", "rejected"),
+    defaultValue: "none",
   },
   status: {
     type: DataTypes.ENUM(
@@ -46,6 +76,7 @@ const AppointmentModel = sequelize.define("AppointmentModel", {
       "cancelled",
       "in_progress",
       "completed",
+      "no_show",
     ),
     defaultValue: "pending",
   },

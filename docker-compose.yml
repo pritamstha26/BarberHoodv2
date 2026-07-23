@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: barberhood-db
+    environment:
+      POSTGRES_USER: barberhood
+      POSTGRES_PASSWORD: barberhood_password
+      POSTGRES_DB: barberhood
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U barberhood"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  server:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: barberhood-server
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: postgresql://barberhood:barberhood_password@postgres:5432/barberhood
+      FRONTEND_URL: http://localhost:5173
+      JWT_SECRET: your-super-secret-jwt-key-change-in-production
+    ports:
+      - "5000:5000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  client:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: barberhood-client
+    environment:
+      VITE_API_URL: http://localhost:5000/api
+      VITE_MAP_TILE_URL: https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png
+    ports:
+      - "5173:80"
+    depends_on:
+      - server
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

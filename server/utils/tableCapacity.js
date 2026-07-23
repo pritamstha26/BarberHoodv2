@@ -4,7 +4,6 @@
  *
  * Table capacity directly impacts:
  * - Maximum concurrent appointments
- * - Dynamic pricing surge calculation
  * - Seat availability validation
  */
 

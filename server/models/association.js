@@ -13,7 +13,7 @@ AppointmentModel.belongsTo(UsersModel, {
   as: "clientUser",
 });
 
-// Restaurateur (formerly barber) associations
+// Restaurateur (formerly restaurant) associations
 AppointmentModel.belongsTo(UsersModel, {
   foreignKey: "restaurateurId",
   as: "restaurateurUser",

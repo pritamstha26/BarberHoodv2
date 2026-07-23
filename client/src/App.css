@@ -1,0 +1,229 @@
+.app-shell {
+	min-height: 100vh;
+	background:
+		radial-gradient(circle at top left, rgba(255, 184, 107, 0.22), transparent 34%),
+		radial-gradient(circle at top right, rgba(35, 48, 82, 0.9), transparent 30%),
+		linear-gradient(135deg, #07111f 0%, #101a2e 45%, #f6f1ea 45%, #f6f1ea 100%);
+}
+
+.app-shell__inner {
+	min-height: 100vh;
+}
+
+.auth-page {
+	min-height: 100vh;
+	display: grid;
+	grid-template-columns: 1.05fr 0.95fr;
+}
+
+.auth-hero {
+	position: relative;
+	overflow: hidden;
+	padding: 3rem;
+	color: #fff8ef;
+	background:
+		linear-gradient(160deg, rgba(7, 17, 31, 0.98), rgba(22, 31, 49, 0.92)),
+		url("https://images.unsplash.com/photo-1521590832167-7bcbfaa6381f?auto=format&fit=crop&w=1600&q=80") center/cover;
+}
+
+.auth-hero::after {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: linear-gradient(135deg, rgba(255, 184, 107, 0.12), transparent 35%, rgba(255, 255, 255, 0.04));
+}
+
+.auth-hero__content,
+.auth-panel {
+	position: relative;
+	z-index: 1;
+}
+
+.auth-kicker {
+	text-transform: uppercase;
+	letter-spacing: 0.24em;
+	font-size: 0.72rem;
+	color: rgba(255, 248, 239, 0.72);
+}
+
+.auth-hero h1 {
+	margin: 0.75rem 0 1rem;
+	font-size: clamp(2.6rem, 5vw, 5rem);
+	line-height: 0.95;
+	letter-spacing: -0.06em;
+}
+
+.auth-hero p {
+	max-width: 34rem;
+	font-size: 1rem;
+	color: rgba(255, 248, 239, 0.8);
+}
+
+.auth-metrics {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 1rem;
+	margin-top: 2rem;
+}
+
+.auth-metric {
+	padding: 1rem;
+	border-radius: 1.15rem;
+	background: rgba(255, 255, 255, 0.08);
+	border: 1px solid rgba(255, 255, 255, 0.12);
+	backdrop-filter: blur(16px);
+}
+
+.auth-metric strong {
+	display: block;
+	font-size: 1.3rem;
+}
+
+.auth-metric span {
+	font-size: 0.85rem;
+	color: rgba(255, 248, 239, 0.72);
+}
+
+.auth-panel {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 2rem;
+	background: #f6f1ea;
+}
+
+.auth-card {
+	width: min(100%, 32rem);
+	border: 0;
+	border-radius: 1.5rem;
+	box-shadow: 0 24px 80px rgba(15, 23, 42, 0.14);
+	overflow: hidden;
+}
+
+.auth-card__body {
+	padding: 2rem;
+}
+
+.auth-heading h2 {
+	margin-bottom: 0.4rem;
+	font-size: 2rem;
+	letter-spacing: -0.04em;
+}
+
+.auth-heading p {
+	margin-bottom: 0;
+	color: #64748b;
+}
+
+.role-switch {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: 0.75rem;
+	margin: 1.25rem 0;
+}
+
+.role-switch--two {
+	grid-template-columns: repeat(2, 1fr);
+}
+
+.role-pill {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.85rem 1rem;
+	border-radius: 999px;
+	border: 1px solid #d7dce5;
+	background: #fff;
+	color: #0f172a;
+	font-weight: 700;
+}
+
+.role-pill.active {
+	border-color: #1d4ed8;
+	color: #1d4ed8;
+	background: rgba(29, 78, 216, 0.08);
+}
+
+.role-pill__dot {
+	width: 0.55rem;
+	height: 0.55rem;
+	border-radius: 999px;
+	background: currentColor;
+}
+
+.auth-form .form-label {
+	font-size: 0.88rem;
+	font-weight: 700;
+	color: #334155;
+}
+
+.auth-form .form-control {
+	min-height: 3.1rem;
+	border-radius: 0.95rem;
+	border-color: #d7dce5;
+	box-shadow: none;
+}
+
+.auth-form .form-control:focus {
+	border-color: #1d4ed8;
+	box-shadow: 0 0 0 0.2rem rgba(29, 78, 216, 0.12);
+}
+
+.auth-submit {
+	min-height: 3.1rem;
+	border-radius: 0.95rem;
+	font-weight: 800;
+	background: linear-gradient(135deg, #0f172a, #1d4ed8);
+	border: none;
+}
+
+.auth-submit:hover,
+.auth-submit:focus {
+	background: linear-gradient(135deg, #0b1220, #1e40af);
+}
+
+.auth-footnote {
+	margin-top: 1rem;
+	font-size: 0.95rem;
+	color: #64748b;
+}
+
+.auth-link {
+	color: #1d4ed8;
+	font-weight: 700;
+	text-decoration: none;
+}
+
+.auth-link:hover {
+	text-decoration: underline;
+}
+
+@media (max-width: 992px) {
+	.auth-page {
+		grid-template-columns: 1fr;
+	}
+
+	.auth-hero {
+		padding: 2rem;
+	}
+}
+
+@media (max-width: 576px) {
+	.auth-hero,
+	.auth-panel {
+		padding: 1.25rem;
+	}
+
+	.auth-card__body {
+		padding: 1.25rem;
+	}
+
+	.auth-metrics {
+		grid-template-columns: 1fr;
+	}
+
+	.role-switch {
+		grid-template-columns: 1fr;
+	}
+}

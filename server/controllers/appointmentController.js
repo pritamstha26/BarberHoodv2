@@ -1,10 +1,24 @@
 import AppointmentModel from "../models/appointmentModel.js";
-import { UsersModel } from "../models/model.js";
+import { UsersModel, LotteryPoolModel, BookingHistoryModel } from "../models/model.js";
+import TableModel from "../models/tableModel.js";
+import sequelize from "../config/db.js";
 import { decodeToken } from "./authController.js";
 import { PRIORITY_LEVELS, PriorityQueue } from "../utils/priorityQueue.js";
 import { Op } from "sequelize";
 import { calculateAppointmentPriority } from "../utils/appointmentPriority.js";
 import RestaurateurService from "../models/RestaurateurServices.js";
+import { ScoringEngine } from "../utils/scoring.js";
+
+const getSlotWindow = (slotStart, durationMinutes = 45) => {
+  const start = new Date(slotStart);
+  const end = new Date(start.getTime() + durationMinutes * 60 * 1000);
+  return { start, end };
+};
+
+function getTimeSlotFromDate(date) {
+  const d = new Date(date);
+  return d.getHours() * 4 + Math.floor(d.getMinutes() / 15);
+}
 
 // Global priority queues for each restaurateur
 const restaurateursQueues = new Map();
@@ -93,11 +107,60 @@ async function updateQueuePositions(restaurateurId) {
 }
 
 async function countActiveAppointments(restaurateurId) {
-  return AppointmentModel.count({
+  const sum = await AppointmentModel.sum("party_size", {
     where: {
       restaurateurId,
       status: { [Op.in]: ["pending", "accepted", "in_progress"] },
     },
+  });
+  return Number(sum || 0);
+}
+
+async function countSlotAppointments(restaurateurId, slotStart, durationMinutes = 45) {
+  const { start, end } = getSlotWindow(slotStart, durationMinutes);
+
+  const sum = await AppointmentModel.sum("party_size", {
+    where: {
+      restaurateurId,
+      [Op.or]: [
+        { date: { [Op.gte]: start, [Op.lt]: end } },
+        { end_time: { [Op.gt]: start, [Op.lte]: end } },
+      ],
+      status: { [Op.in]: ["pending", "accepted", "in_progress"] },
+    },
+  });
+  return Number(sum || 0);
+}
+
+async function checkTableAvailability(tableId, bookingDate) {
+  const startOfDay = new Date(bookingDate);
+  startOfDay.setHours(0, 0, 0, 0);
+  const endOfDay = new Date(bookingDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
+  const existingAppointment = await AppointmentModel.findOne({
+    where: {
+      table_id: tableId,
+      date: {
+        [Op.gte]: startOfDay,
+        [Op.lte]: endOfDay,
+      },
+      status: { [Op.in]: ["pending", "accepted", "in_progress"] },
+    },
+  });
+
+  return !existingAppointment;
+}
+
+async function getTableById(tableId) {
+  return TableModel.findByPk(tableId);
+}
+
+async function getRestaurantTables(restaurateurId) {
+  return TableModel.findAll({
+    where: { restaurateur_id: restaurateurId, is_active: true },
+    order: [["table_number", "ASC"]],
+    raw: true,
   });
 }
 
@@ -139,9 +202,10 @@ function canBookAfterMinimumGap(
 
   for (const appointment of sameRestaurantAppointments) {
     const appointmentTime = new Date(appointment.date).getTime();
-    const timeDifference = Math.abs(desiredTime - appointmentTime);
+    const isPreviousAppointment = appointmentTime <= desiredTime;
+    const timeDifference = desiredTime - appointmentTime;
 
-    if (timeDifference < minGapMs) {
+    if (isPreviousAppointment && timeDifference < minGapMs) {
       return false;
     }
   }
@@ -151,14 +215,26 @@ function canBookAfterMinimumGap(
 
 export const createAppointment = async (req, res) => {
   try {
+    // Log incoming request
+    console.log("📝 [APPOINTMENT CREATE] Received request:");
+    console.log("   Body:", JSON.stringify(req.body, null, 2));
+    console.log("   Auth header:", req.headers.authorization ? "Present" : "Missing");
+
     // 1. Authenticate user
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "Unauthorized" });
+    if (!token) {
+      console.log("   ❌ No token provided");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const decodedToken = decodeToken(token);
-    if (!decodedToken) return res.status(401).json({ message: "Unauthorized" });
+    if (!decodedToken) {
+      console.log("   ❌ Invalid token");
+      return res.status(401).json({ message: "Unauthorized" });
+    }
 
     const clientId = decodedToken.id;
+    console.log("   ✅ Authenticated as client:", clientId);
 
     // 2. Extract request body
     const {
@@ -173,7 +249,14 @@ export const createAppointment = async (req, res) => {
     const selectedServiceId = service_id || serviceId;
     const restaurateurId = restaurateurs_id || restaurateur_id;
 
+    console.log("   📦 Parsed fields:");
+    console.log("      service_id:", selectedServiceId);
+    console.log("      date:", date);
+    console.log("      restaurateur_id:", restaurateurId);
+    console.log("      clientType:", clientType);
+
     if (!selectedServiceId || !date) {
+      console.log("   ❌ Missing required fields");
       return res.status(400).json({
         message: "service_id and date are required",
         received: { service_id: selectedServiceId, date },
@@ -181,6 +264,7 @@ export const createAppointment = async (req, res) => {
     }
 
     if (!restaurateurId) {
+      console.log("   ❌ Missing restaurateur_id");
       return res.status(400).json({
         message: "restaurateur_id is required for this booking request",
         received: { restaurateur_id: restaurateurId },
@@ -189,12 +273,29 @@ export const createAppointment = async (req, res) => {
 
     const appointmentDate = new Date(date);
     if (isNaN(appointmentDate)) {
+      console.log("   ❌ Invalid date format:", date);
       return res.status(400).json({ message: "Invalid date format" });
     }
+    if (appointmentDate.getTime() <= Date.now()) {
+      console.log("   ❌ Past appointment blocked:", appointmentDate.toISOString());
+      return res.status(400).json({
+        success: false,
+        message: "Appointments must be booked for a future date and time.",
+      });
+    }
+    console.log("   ✅ Date valid:", appointmentDate);
+
+    const partySize = Number(req.body.party_size) || Number(req.body.partySize) || 1;
+    if (!Number.isInteger(partySize) || partySize < 1) {
+      return res.status(400).json({ success: false, message: "party_size must be a positive integer" });
+    }
+
+    const tableId = req.body.table_id || req.body.tableId || null;
 
     // Validate service exists
     const service = await RestaurateurService.findByPk(selectedServiceId);
     if (!service) {
+      console.log("   ❌ Service not found:", selectedServiceId);
       return res.status(404).json({
         success: false,
         message: `Service with ID ${selectedServiceId} not found`,
@@ -205,6 +306,7 @@ export const createAppointment = async (req, res) => {
         hint: "Ensure the service_id is a valid RestaurateurService ID (not ServiceModel ID)",
       });
     }
+    console.log("   ✅ Service found:", service.name);
 
     // Validate restaurateur exists and get capacity
     if (restaurateurId) {
@@ -213,25 +315,54 @@ export const createAppointment = async (req, res) => {
       });
 
       if (!restaurateur) {
+        console.log("   ❌ Restaurateur not found:", restaurateurId);
         return res.status(404).json({
           success: false,
           message: `Restaurateur with ID ${restaurateurId} not found`,
         });
       }
+      console.log("   ✅ Restaurateur found:", restaurateur.first_name);
 
-      // Check capacity
-      const activeAppointments = await countActiveAppointments(restaurateurId);
-      const seatCapacity = restaurateur.seat_capacity ?? 10;
-      if (activeAppointments >= seatCapacity) {
-        return res.status(409).json({
-          success: false,
-          message:
-            "Restaurant is fully booked. Please choose another time or restaurant.",
-          details: {
-            activeAppointments,
-            seatCapacity,
-          },
-        });
+      if (tableId) {
+        const table = await getTableById(tableId);
+        if (!table || table.restaurateur_id !== Number(restaurateurId)) {
+          return res.status(404).json({
+            success: false,
+            message: "Table not found for this restaurant",
+          });
+        }
+
+        if (partySize > table.capacity) {
+          return res.status(409).json({
+            success: false,
+            message: `Party size exceeds table capacity. Table ${table.table_number} capacity is ${table.capacity}.`,
+          });
+        }
+
+        const isTableAvailable = await checkTableAvailability(tableId, appointmentDate);
+        if (!isTableAvailable) {
+          return res.status(409).json({
+            success: false,
+            message: "This table is already booked for the selected date.",
+          });
+        }
+      } else {
+        // Check capacity
+        const activeAppointments = await countActiveAppointments(restaurateurId);
+        const seatCapacity = restaurateur.seat_capacity ?? 10;
+        console.log(`   📊 Capacity check (seats): ${activeAppointments}/${seatCapacity}`);
+        if (activeAppointments + partySize > seatCapacity) {
+          console.log("   ❌ Restaurant at full capacity");
+          return res.status(409).json({
+            success: false,
+            message:
+              "Restaurant is fully booked. Please choose another time or restaurant.",
+            details: {
+              activeAppointments,
+              seatCapacity,
+            },
+          });
+        }
       }
     }
 
@@ -248,7 +379,7 @@ export const createAppointment = async (req, res) => {
     // If booking at same restaurant, enforce 1-hour gap between appointments
     if (restaurateurId && existingAppointments.length > 0) {
       const sameRestaurantAppointments = existingAppointments.filter(
-        (apt) => apt.restaurateurId === restaurateurId,
+        (apt) => Number(apt.restaurateurId) === Number(restaurateurId),
       );
 
       if (sameRestaurantAppointments.length > 0) {
@@ -273,26 +404,75 @@ export const createAppointment = async (req, res) => {
       }
     }
 
+    // Auto-allocate via embedded scoring, or enter lottery if slot is contested
+    const bookDateStr = appointmentDate.toISOString().slice(0, 10);
+    const preferredTimeSlot = getTimeSlotFromDate(appointmentDate);
+    const pendingLotteryCount = await LotteryPoolModel.count({
+      where: {
+        restaurant_id: Number(restaurateurId),
+        booking_date: bookDateStr,
+        preferred_time_slot: preferredTimeSlot,
+        status: "pending",
+      },
+    });
+
+    let autoAccept = pendingLotteryCount === 0;
+    let lotteryEntry = null;
+
+    if (!autoAccept) {
+      const weight = await ScoringEngine.calculateTotalWeight(
+        clientId,
+        Number(restaurateurId),
+        {},
+      );
+      lotteryEntry = await LotteryPoolModel.create({
+        restaurant_id: Number(restaurateurId),
+        user_id: clientId,
+        booking_date: bookDateStr,
+        preferred_time_slot: preferredTimeSlot,
+        party_size: partySize,
+        flexibility_range_minutes: 0,
+        weight,
+        status: "pending",
+        alternative_accepted: false,
+      });
+    }
+
     // Create appointment with validated data
     try {
+      console.log("   📝 Creating appointment...");
+      const durationMinutes = Number(service.duration) || 45;
+      const endTime = new Date(appointmentDate.getTime() + durationMinutes * 60 * 1000);
+
       const appointment = await AppointmentModel.create({
         serviceId: selectedServiceId,
         clientId,
         restaurateurId: restaurateurId || null,
+        table_id: tableId,
         date: appointmentDate,
-        status: "pending",
+        end_time: endTime,
+        party_size: partySize,
+        booked_price: Number(service.price || 0),
+        status: autoAccept ? "accepted" : "pending",
         clientType,
         isReschedule,
       });
 
+      console.log("   ✅ Appointment created:", appointment.id);
+
       res.status(201).json({
         success: true,
-        message: `Appointment created successfully`,
+        message: autoAccept
+          ? "Appointment created and auto-confirmed"
+          : "Appointment created and entered into weighted lottery — the scheduler will resolve it shortly",
         appointment: {
           ...appointment.toJSON(),
+          lotteryEntryId: lotteryEntry ? lotteryEntry.id : null,
+          totalCompetitors: lotteryEntry ? pendingLotteryCount : 0,
         },
       });
     } catch (dbError) {
+      console.log("   ❌ Database error:", dbError.name, dbError.message);
       // Handle FK constraint violations
       if (dbError.name === "SequelizeForeignKeyConstraintError") {
         return res.status(400).json({
@@ -340,6 +520,182 @@ export const createAppointment = async (req, res) => {
   }
 };
 
+/**
+ * Attempt to extend an existing appointment by minutes.
+ * Body: { extra_minutes: number }
+ */
+export const extendAppointment = async (req, res) => {
+  const appointmentId = req.params.id;
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ message: "Unauthorized" });
+  const decoded = decodeToken(token);
+  if (!decoded) return res.status(401).json({ message: "Unauthorized" });
+
+  const extraMinutes = Number(req.body.extra_minutes || req.body.extraMinutes || 0);
+  if (!Number.isInteger(extraMinutes) || extraMinutes <= 0) {
+    return res.status(400).json({ success: false, message: "extra_minutes must be a positive integer" });
+  }
+
+  const t = await sequelize.transaction();
+  try {
+    const apt = await AppointmentModel.findByPk(appointmentId, { transaction: t });
+    if (!apt) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Appointment not found" });
+    }
+
+    // Only client who owns appointment may request extension
+    if (Number(apt.clientId) !== Number(decoded.id)) {
+      await t.rollback();
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    // Only accepted or in_progress appointments may be extended
+    if (!["accepted", "in_progress", "pending"].includes(apt.status)) {
+      await t.rollback();
+      return res.status(400).json({ success: false, message: "Cannot extend this appointment status" });
+    }
+
+    const restaurateurId = apt.restaurateurId;
+    const restaurateur = await UsersModel.findOne({ where: { id: restaurateurId, role: "restaurateurs" }, transaction: t });
+    if (!restaurateur) {
+      await t.rollback();
+      return res.status(404).json({ success: false, message: "Restaurateur not found" });
+    }
+
+    const currentEnd = apt.extended_until ? new Date(apt.extended_until) : new Date(apt.end_time);
+    const requestedEnd = new Date(currentEnd.getTime() + extraMinutes * 60 * 1000);
+
+    // find seats taken in the requested extension window (excluding this appointment)
+    const seatsTaken = await AppointmentModel.sum("party_size", {
+      where: {
+        restaurateurId,
+        id: { [Op.ne]: apt.id },
+        status: { [Op.in]: ["pending", "accepted", "in_progress"] },
+        [Op.or]: [
+          { date: { [Op.lt]: requestedEnd }, end_time: { [Op.gt]: currentEnd } },
+          { extended_until: { [Op.gt]: currentEnd, [Op.lte]: requestedEnd } },
+        ],
+      },
+      transaction: t,
+    });
+
+    const seats = Number(seatsTaken || 0);
+    const capacity = restaurateur.seat_capacity || 10;
+
+    if (seats + apt.party_size > capacity) {
+      await t.rollback();
+      return res.status(409).json({ success: false, message: "Not enough capacity to extend appointment" });
+    }
+
+    // apply extension
+    apt.extended_until = requestedEnd;
+    apt.end_time = requestedEnd;
+    apt.extension_status = "accepted";
+    await apt.save({ transaction: t });
+
+    await t.commit();
+    return res.status(200).json({ success: true, message: "Appointment extended", appointment: apt });
+  } catch (err) {
+    await t.rollback();
+    console.error("EXTEND APPOINTMENT ERROR:", err.message || err);
+    return res.status(500).json({ success: false, message: "Error extending appointment" });
+  }
+};
+
+export const getSlottedDynamicPricing = async (req, res) => {
+  try {
+    const { restaurateurId, serviceId, date } = req.query;
+
+    if (!restaurateurId || !serviceId) {
+      return res.status(400).json({
+        success: false,
+        message: "restaurateurId and serviceId are required",
+      });
+    }
+
+    const service = await RestaurateurService.findByPk(serviceId);
+    if (!service) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
+    }
+
+    const restaurateur = await UsersModel.findOne({
+      where: { id: restaurateurId, role: "restaurateurs" },
+      attributes: ["id", "first_name", "last_name", "seat_capacity"],
+    });
+
+    if (!restaurateur) {
+      return res.status(404).json({
+        success: false,
+        message: "Restaurant not found",
+      });
+    }
+
+    const selectedDate = date ? new Date(date) : new Date();
+    if (Number.isNaN(selectedDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid date",
+      });
+    }
+
+    const totalCapacity = restaurateur.seat_capacity || 10;
+    const slotDurationMinutes = service.duration || 45;
+
+    const slots = await Promise.all(
+      SLOT_DEFINITIONS.map(async (slot) => {
+        const slotStart = buildSlotDate(selectedDate, slot);
+        const activeAppointments = await countSlotAppointments(
+          restaurateurId,
+          slotStart,
+          slotDurationMinutes,
+        );
+
+        return {
+          id: slot.id,
+          time: slot.time,
+          period: slot.period,
+          startsAt: slotStart.toISOString(),
+          price: Number(service.price || 0),
+          activeAppointments,
+          capacityRemaining: Math.max(totalCapacity - activeAppointments, 0),
+          totalCapacity,
+          isAvailable: activeAppointments < totalCapacity,
+          isPastSlot: slotStart.getTime() + slotDurationMinutes * 60 * 1000 <= Date.now(),
+        };
+      }),
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        restaurant: {
+          id: restaurateur.id,
+          name: `${restaurateur.first_name} ${restaurateur.last_name}`.trim(),
+          seatCapacity: totalCapacity,
+        },
+        service: {
+          id: service.id,
+          name: service.name,
+          price: service.price,
+          duration: service.duration,
+        },
+        slots,
+      },
+    });
+  } catch (error) {
+    console.error("Error calculating slot availability:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to calculate slot availability",
+      error: error.message,
+    });
+  }
+};
+
 // Get appointments ordered by priority
 export const getAppointmentsByPriority = async (req, res) => {
   try {
@@ -366,7 +722,7 @@ export const getAppointmentsByPriority = async (req, res) => {
         {
           model: UsersModel,
           as: "restaurateurs",
-          attributes: ["id", "first_name", "last_name", "email"],
+          attributes: ["id", "first_name", "last_name", "email", "latitude", "longitude", "location_name"],
         },
         {
           model: RestaurateurService,
@@ -548,6 +904,7 @@ export const getAppointmentById = async (req, res) => {
 
     const appointment = await AppointmentModel.findAll({
       where: { clientId: decodedToken.id },
+      order: [["date", "DESC"]],
       include: [
         {
           model: UsersModel,
@@ -557,7 +914,7 @@ export const getAppointmentById = async (req, res) => {
         {
           model: UsersModel,
           as: "restaurateurs",
-          attributes: ["id", "first_name", "last_name", "email"],
+          attributes: ["id", "first_name", "last_name", "email", "latitude", "longitude", "location_name"],
         },
         {
           model: RestaurateurService,
@@ -963,6 +1320,27 @@ export const cancelAppointment = async (req, res) => {
         ],
       });
 
+      try {
+        const dateOnly = updatedAppointment.date
+          ? new Date(updatedAppointment.date).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+
+        const timeSlot = updatedAppointment.date
+          ? Math.floor(new Date(updatedAppointment.date).getHours() * 4 + new Date(updatedAppointment.date).getMinutes() / 15)
+          : 0;
+
+        await BookingHistoryModel.create({
+          user_id: updatedAppointment.clientId,
+          restaurant_id: updatedAppointment.restaurateurId,
+          booking_date: dateOnly,
+          booking_time_slot: timeSlot,
+          party_size: updatedAppointment.party_size || 1,
+          status: "late_cancelled",
+        });
+      } catch (historyErr) {
+        console.error("Failed to create booking history on cancel:", historyErr);
+      }
+
       // If the appointment belonged to a restaurateur, update queue positions
       try {
         if (updatedAppointment && updatedAppointment.restaurateurId) {
@@ -1038,12 +1416,33 @@ export const completeAppointment = async (req, res) => {
             ],
           },
           {
-            model: BarberService,
+            model: RestaurateurService,
             as: "service",
             attributes: ["id", "name", "price", "duration"],
           },
         ],
       });
+
+      try {
+        const dateOnly = updatedAppointment.date
+          ? new Date(updatedAppointment.date).toISOString().slice(0, 10)
+          : new Date().toISOString().slice(0, 10);
+
+        const timeSlot = updatedAppointment.date
+          ? Math.floor(new Date(updatedAppointment.date).getHours() * 4 + new Date(updatedAppointment.date).getMinutes() / 15)
+          : 0;
+
+        await BookingHistoryModel.create({
+          user_id: updatedAppointment.clientId,
+          restaurant_id: updatedAppointment.restaurateurId,
+          booking_date: dateOnly,
+          booking_time_slot: timeSlot,
+          party_size: updatedAppointment.party_size || 1,
+          status: "completed",
+        });
+      } catch (historyErr) {
+        console.error("Failed to create booking history on complete:", historyErr);
+      }
 
       return res.status(200).json({
         message: "Appointment marked as completed successfully",
@@ -1079,6 +1478,9 @@ export const getAppointmentsByClientId = async (req, res) => {
             "last_name",
             "email",
             "phone_number",
+            "latitude",
+            "longitude",
+            "location_name",
           ],
         },
         {
@@ -1087,7 +1489,7 @@ export const getAppointmentsByClientId = async (req, res) => {
           attributes: ["id", "name", "price", "duration"],
         },
       ],
-      order: [["date", "ASC"]],
+      order: [["date", "DESC"]],
     });
 
     // Format the response to match the structure needed by the client
@@ -1096,10 +1498,12 @@ export const getAppointmentsByClientId = async (req, res) => {
       return {
         id: appointmentData.id,
         client_id: appointmentData.clientId,
-        restaurateurs_id: appointmentData.restaurateurId,
-        restaurateurs_name: appointmentData.restaurateurs
+        restaurateur_name: appointmentData.restaurateurs
           ? `${appointmentData.restaurateurs.first_name} ${appointmentData.restaurateurs.last_name}`
           : "Unknown restaurateurs",
+        restaurateur_lat: appointmentData.restaurateurs?.latitude ?? null,
+        restaurateur_lng: appointmentData.restaurateurs?.longitude ?? null,
+        restaurateur_location: appointmentData.restaurateurs?.location_name ?? null,
         service_id: appointmentData.serviceId,
         service_name: appointmentData.service
           ? appointmentData.service.name

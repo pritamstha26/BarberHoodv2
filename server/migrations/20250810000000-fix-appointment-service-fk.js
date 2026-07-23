@@ -9,13 +9,13 @@ module.exports = {
       "AppointmentModels_serviceId_fkey",
     );
 
-    // Add new foreign key constraint to BarberServices
+    // Add new foreign key constraint to restaurantServices
     await queryInterface.addConstraint("AppointmentModels", {
       fields: ["serviceId"],
       type: "foreign key",
-      name: "AppointmentModels_serviceId_BarberService_fkey",
+      name: "AppointmentModels_serviceId_restaurantService_fkey",
       references: {
-        table: "BarberServices",
+        table: "restaurantServices",
         field: "id",
       },
       onDelete: "CASCADE",
@@ -27,7 +27,7 @@ module.exports = {
     // Drop the new foreign key constraint
     await queryInterface.removeConstraint(
       "AppointmentModels",
-      "AppointmentModels_serviceId_BarberService_fkey",
+      "AppointmentModels_serviceId_restaurantService_fkey",
     );
 
     // Add back the original foreign key constraint

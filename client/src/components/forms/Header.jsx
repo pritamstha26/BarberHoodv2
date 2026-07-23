@@ -13,7 +13,7 @@ export default function Header() {
   // Set initial active key based on current route
   function getInitialActiveKey() {
     if (location.pathname.includes("/admin")) return "#admin";
-    if (location.pathname.includes("/barber")) return "#barber";
+    if (location.pathname.includes("/restaurant")) return "#restaurant";
 
     return "#client"; // default
   }
@@ -26,8 +26,8 @@ export default function Header() {
       case "#admin":
         navigate("/login/admin");
         break;
-      case "#barber":
-        navigate("/login/barber");
+      case "#restaurant":
+        navigate("/login/restaurant");
         break;
       case "#client":
         navigate("/login/client");
@@ -64,8 +64,8 @@ export default function Header() {
                 </Nav.Link>
               </Nav.Item>
               <Nav.Item>
-                <Nav.Link eventKey="#barber" className=" text-center">
-                  Barber
+                <Nav.Link eventKey="#restaurant" className=" text-center">
+                  restaurant
                 </Nav.Link>
               </Nav.Item>
             </Nav>

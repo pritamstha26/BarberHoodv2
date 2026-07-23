@@ -5,7 +5,7 @@ import {
   updateRestaurateursService,
   addRestaurateursService,
   getRestaurateursById,
-} from "../controllers/barberServiceController.js";
+} from "../controllers/restaurantServiceController.js";
 const router = express.Router();
 
 // Route to get all restaurateurs services

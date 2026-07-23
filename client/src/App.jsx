@@ -1,21 +1,40 @@
-import React from "react";
-import { Route, Routes } from "react-router-dom";
+import React, { useEffect } from "react";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import routes from "./routes/routes";
 import { Container } from "react-bootstrap";
-//
-export default function App() {
+import "./App.css";
+
+function App() {
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handler = () => {
+      navigate("/login", { replace: true });
+    };
+    window.addEventListener("app:unauthorized", handler);
+    return () => window.removeEventListener("app:unauthorized", handler);
+  }, [navigate]);
+
+  const renderRoutes = (routesList) => {
+    return routesList.map((route, index) => {
+      const { children, ...routeProps } = route;
+      return (
+        <Route key={index} {...routeProps}>
+          {children && renderRoutes(children)}
+        </Route>
+      );
+    });
+  };
+
   return (
-    <Container fluid className="vh-100  p-0">
-      <Routes>
-        {routes.map((route, index) => (
-          // <Route key={index} path={route.path} element={route.element} />
-          <Route key={index} path={route.path} element={route.element}>
-            {route.children?.map((rt, index) => (
-              <Route key={index} path={rt.path} element={rt.element} />
-            ))}
-          </Route>
-        ))}
-      </Routes>
-    </Container>
+    <div className="app-shell">
+      <Container fluid className="app-shell__inner p-0">
+        <Routes>
+          {renderRoutes(routes)}
+        </Routes>
+      </Container>
+    </div>
   );
 }
+
+export default App;

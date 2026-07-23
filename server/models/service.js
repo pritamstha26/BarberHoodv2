@@ -1,4 +1,7 @@
-import { UsersModel } from "./model.js"; // Assuming you have a Users modelS
+import { DataTypes } from "sequelize";
+import sequelize from "../config/db.js";
+import { UsersModel } from "./model.js";
+
 export const ServiceModel = sequelize.define(
   "ServiceModel",
   {
@@ -10,7 +13,6 @@ export const ServiceModel = sequelize.define(
     title: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: true,
     },
     description: {
       type: DataTypes.TEXT,
@@ -21,14 +23,13 @@ export const ServiceModel = sequelize.define(
       allowNull: false,
     },
     duration: {
-      type: DataTypes.INTEGER, // Duration in minutes
+      type: DataTypes.INTEGER,
       allowNull: false,
     },
     deadline: {
-      type: DataTypes.DATE, // Duration in minutes
+      type: DataTypes.DATE,
       allowNull: false,
     },
-
     prefer_contact_method: {
       type: DataTypes.ENUM("email", "phone"),
     },
@@ -40,21 +41,24 @@ export const ServiceModel = sequelize.define(
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: UsersModel, // Assuming you have a Users model
+        model: UsersModel,
         key: "id",
       },
     },
-
     status: {
       type: DataTypes.ENUM("completed", "pending", "cancelled", "in_progress"),
       defaultValue: "pending",
     },
   },
   {
-    timestamps: true, // Adds createdAt and updatedAt fields
+    timestamps: true,
+    indexes: [
+      {
+        unique: true,
+        fields: ["user_id", "title", "service_type"],
+      },
+    ],
   }
 );
 
 export default ServiceModel;
-import { DataTypes } from "sequelize";
-import sequelize from "../config/db.js"; // Adjust the import based on your project structure

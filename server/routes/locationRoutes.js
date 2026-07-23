@@ -9,7 +9,7 @@ import {
 
 const router = express.Router();
 
-// Get nearby barbers based on provided coordinates
+// Get nearby restaurants based on provided coordinates
 router.get("/nearby-restaurateurs", getNearbyRestaurateurs);
 
 // Update user's location

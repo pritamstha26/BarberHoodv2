@@ -222,22 +222,22 @@ async function seedLocationBasedUsers() {
     console.log('Connection established successfully.');
 
     // Number of users to create
-    const barberCount = process.env.BARBER_COUNT ? parseInt(process.env.BARBER_COUNT) : 500;
+    const restaurantCount = process.env.restaurant_COUNT ? parseInt(process.env.restaurant_COUNT) : 500;
     const clientCount = process.env.CLIENT_COUNT ? parseInt(process.env.CLIENT_COUNT) : 100;
     const defaultPassword = await bcrypt.hash('Password@123', 10);
 
-    console.log(`Creating ${barberCount} barbers and ${clientCount} clients with location data...`);
+    console.log(`Creating ${restaurantCount} restaurants and ${clientCount} clients with location data...`);
 
     // Get Kathmandu area coordinates
     const kathmanduArea = getKathmanduAreaCoordinates();
 
-    // Generate barbers one by one to handle duplicates
-    const barbers = [];
-    let successfulBarbers = 0;
+    // Generate restaurants one by one to handle duplicates
+    const restaurants = [];
+    let successfulrestaurants = 0;
 
-    console.log('Generating and inserting barbers one by one...');
+    console.log('Generating and inserting restaurants one by one...');
 
-    for (let i = 0; i < barberCount && successfulBarbers < barberCount; i++) {
+    for (let i = 0; i < restaurantCount && successfulrestaurants < restaurantCount; i++) {
       try {
         const firstName = nepaliFirstNames[Math.floor(Math.random() * nepaliFirstNames.length)];
         const lastName = nepaliLastNames[Math.floor(Math.random() * nepaliLastNames.length)];
@@ -263,7 +263,7 @@ async function seedLocationBasedUsers() {
           continue;
         }
 
-        // Create the barber
+        // Create the restaurant
         await UsersModel.create({
           first_name: firstName,
           last_name: lastName,
@@ -273,20 +273,20 @@ async function seedLocationBasedUsers() {
           latitude: location.latitude,
           longitude: location.longitude,
           location_name: locationName,
-          role: 'barber',
+          role: 'restaurant',
           createdAt: new Date(),
           updatedAt: new Date()
         });
 
-        successfulBarbers++;
+        successfulrestaurants++;
 
         // Log progress
-        if (successfulBarbers % 10 === 0) {
-          console.log(`Created ${successfulBarbers} barbers so far...`);
+        if (successfulrestaurants % 10 === 0) {
+          console.log(`Created ${successfulrestaurants} restaurants so far...`);
         }
       } catch (error) {
-        console.error(`Error creating barber: ${error.message}`);
-        // Continue with the next barber
+        console.error(`Error creating restaurant: ${error.message}`);
+        // Continue with the next restaurant
       }
     }
 
@@ -349,14 +349,14 @@ async function seedLocationBasedUsers() {
     }
 
     // Count actual inserted records
-    const actualBarberCount = await UsersModel.count({ where: { role: 'barber' } });
+    const actualrestaurantCount = await UsersModel.count({ where: { role: 'restaurant' } });
     const actualClientCount = await UsersModel.count({ where: { role: 'client' } });
 
     console.log(
-      `Successfully created ${successfulBarbers} barbers and ${successfulClients} clients with location data.`
+      `Successfully created ${successfulrestaurants} restaurants and ${successfulClients} clients with location data.`
     );
     console.log(
-      `Database now has ${actualBarberCount} barbers and ${actualClientCount} clients total.`
+      `Database now has ${actualrestaurantCount} restaurants and ${actualClientCount} clients total.`
     );
   } catch (error) {
     console.error('Error seeding users with locations:', error);

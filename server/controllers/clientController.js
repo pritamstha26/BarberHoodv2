@@ -20,13 +20,16 @@ export const getUsers = async (req, res) => {
         "email",
         "phone_number",
         "role",
+        "opening_time",
+        "closing_time",
       ],
     });
 
     if (!users || users.length === 0) {
-      return res.status(404).json({
-        success: false,
-        message: "No users found",
+      return res.status(200).json({
+        success: true,
+        data: [],
+        count: 0,
       });
     }
 
@@ -68,6 +71,8 @@ export const getUserById = async (req, res) => {
         "email",
         "phone_number",
         "role",
+        "opening_time",
+        "closing_time",
       ],
     });
     if (!user) {
@@ -178,6 +183,13 @@ export const updateUser = async (req, res) => {
 
     const updateData = { ...req.body };
 
+    if (updateData.opening_time === "") {
+      updateData.opening_time = null;
+    }
+    if (updateData.closing_time === "") {
+      updateData.closing_time = null;
+    }
+
     // 🔐 Hash password if it exists
     if (
       typeof updateData.password === "string" &&
@@ -249,7 +261,7 @@ export const updateUser = async (req, res) => {
 //     // ✅ Check if the user is referenced in appointments
 //     const isReferenced = await AppointmentModel.findOne({
 //       where: {
-//         [Op.or]: [{ barberId: reqId }, { clientId: reqId }],
+//         [Op.or]: [{ restaurantId: reqId }, { clientId: reqId }],
 //       },
 //     });
 
@@ -308,7 +320,7 @@ export const deleteUser = async (req, res) => {
         .json({ success: false, message: "User to delete not found" });
     }
 
-    // Update appointments status to 'cancelled' where barberId or clientId = reqId
+    // Update appointments status to 'cancelled' where restaurantId or clientId = reqId
     await AppointmentModel.update(
       { status: "cancelled" },
       {

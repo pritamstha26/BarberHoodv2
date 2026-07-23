@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Container,
   Card,
@@ -28,13 +28,29 @@ const RequestService = () => {
     duration: "",
     clientType: "regular",
   });
-  const [apiData, setApiData] = useState([]);
   const [validated, setValidated] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [appointmentDetails, setAppointmentDetails] = useState(null);
   const [showAppointmentModal, setShowAppointmentModal] = useState(false);
+  const [serviceOptions, setServiceOptions] = useState([]);
+
+  const resetForm = () => {
+    setFormData({
+      service_type: "",
+      title: "",
+      description: "",
+      price: "",
+      deadline: new Date(Date.now() + 60 * 60 * 1000),
+      prefer_contact_method: "email",
+      duration: "",
+      clientType: "regular",
+    });
+    setValidated(false);
+    setShowSuccess(false);
+    setAppointmentDetails(null);
+    setShowAppointmentModal(false);
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -56,11 +72,13 @@ const RequestService = () => {
 
     //adding the user_id to the formData
     const token = sessionStorage.getItem("access_token");
+    if (!token) {
+      alert("Please log in to submit a request.");
+      return;
+    }
     const decoded = jwtDecode(token);
 
-    formData.user_id = decoded.id;
-
-    await addServiceRequest(formData);
+    await addServiceRequest({ ...formData, user_id: decoded.id });
   };
 
   const addServiceRequest = async (data) => {
@@ -86,18 +104,12 @@ const RequestService = () => {
           title: "",
           description: "",
           price: "",
-          deadline: "",
+          deadline: new Date(Date.now() + 60 * 60 * 1000),
           prefer_contact_method: "email",
           duration: "",
           clientType: "regular",
         });
-
-        // Don't reload immediately to allow user to see appointment details
-        if (!res.data.appointment) {
-          setTimeout(() => {
-            window.location.reload(); // Reload the page to reset the form
-          }, 2000);
-        }
+        await loadServiceOptions();
       }
     } catch (error) {
       console.error("Error submitting service request:", error);
@@ -114,54 +126,28 @@ const RequestService = () => {
     return selectedHour >= 8 && selectedHour < 20;
   };
 
-  const date = new Date("2025-07-28T00:00:00.000Z");
-  useEffect(() => {
-    const response = async () => {
-      try {
-        const token = sessionStorage.getItem("access_token");
-        if (!token) {
-          console.error("No access token found");
-          return;
-        }
-        const res = await api.get("/services/all", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        if (res.status === 200) {
-          // Assuming the response contains an array of service types
-          setApiData(res.data.data);
-        }
-      } catch (error) {
-        console.error("Error fetching API data:", error);
-      }
-    };
-    response();
-  }, []);
-
-  const [data, setDatas] = useState([]);
-  const apis = async () => {
+  const loadServiceOptions = async () => {
     try {
-      const token = sessionStorage.getItem("access_token");
-      if (!token) {
-        console.error("No access token found");
-        return;
-      }
-      const res = await api.get("/restaurateurs-services/all", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await api.get("/restaurateurs-services/all");
       if (res.status === 200) {
-        // Assuming the response contains an array of service types
-        setDatas(res.data);
+        const loadedServices = res.data?.services || res.data || [];
+        setServiceOptions(loadedServices);
+        const firstService = loadedServices[0];
+        if (firstService) {
+          setFormData((prev) => ({
+            ...prev,
+            service_type: firstService.name,
+            price: firstService.price,
+            duration: firstService.duration,
+          }));
+        }
       }
     } catch (error) {
       console.error("Error fetching API data:", error);
     }
   };
   useEffect(() => {
-    apis();
+    loadServiceOptions();
   }, []);
   return (
     <Container fluid className="p-4">
@@ -205,15 +191,14 @@ const RequestService = () => {
                     name="service_type"
                     value={formData.service_type}
                     onChange={(e) => {
-                      const value = e.target.value;
-                      setFormData((prev) => ({ ...prev, service_type: value }));
-
-                      const found = data.find((s) => s.name === value);
-                      setSelectedService(found || null);
-
+                      const selectedTitle = e.target.value;
+                      const found = serviceOptions.find(
+                        (service) => service.name === selectedTitle,
+                      );
                       setFormData((prev) => ({
                         ...prev,
-                        service_type: value,
+                        service_type: selectedTitle,
+                        title: found?.name || prev.title,
                         price: found?.price || "",
                         duration: found?.duration || "",
                       }));
@@ -221,9 +206,9 @@ const RequestService = () => {
                     required
                   >
                     <option value="">Select a service</option>
-                    {data.map((service) => (
+                    {serviceOptions.map((service) => (
                       <option key={service.id} value={service.name}>
-                        {service.name}
+                        {service.name} - Rs. {service.price}
                       </option>
                     ))}
                   </Form.Select>
@@ -434,8 +419,7 @@ const RequestService = () => {
       <Modal
         show={showAppointmentModal}
         onHide={() => {
-          setShowAppointmentModal(false);
-          window.location.reload();
+          resetForm();
         }}
         centered
       >
@@ -483,8 +467,7 @@ const RequestService = () => {
           <Button
             variant="success"
             onClick={() => {
-              setShowAppointmentModal(false);
-              window.location.reload();
+              resetForm();
             }}
           >
             Done

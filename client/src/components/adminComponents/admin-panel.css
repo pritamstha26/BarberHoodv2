@@ -140,3 +140,361 @@
 .settings-card {
   margin-bottom: 20px;
 }
+/* Custom Input Group styling for clean searches */
+.matte-input-group {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.01);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.matte-input-group .input-group-text {
+  border: 1px solid var(--matte-border);
+  background-color: #ffffff;
+}
+.tracking-tight {
+  letter-spacing: -0.025em;
+}
+.fw-mono {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}
+
+
+/* Slick Typography & Structural Layout Modifications */
+.slick-workspace {
+  background-color: #f8fafc;
+}
+.slick-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  margin: 0 0 0.2rem 0;
+}
+.slick-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0;
+}
+
+/* Elite Action Buttons Structure */
+.slick-btn-primary {
+  background-color: #0f172a !important;
+  color: #ffffff !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  padding: 0.6rem 1.2rem !important;
+  border-radius: 8px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.1);
+  transition: transform 0.1s, opacity 0.2s;
+}
+.slick-btn-primary:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+.slick-btn-secondary {
+  background-color: #ffffff !important;
+  border: 1px solid #e2e8f0 !important;
+  color: #334155 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  padding: 0.6rem 1rem !important;
+}
+.slick-btn-secondary:hover {
+  background-color: #f1f5f9 !important;
+}
+
+/* Slick Search Architecture */
+.slick-search-group {
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+  transition: border-color 0.15s;
+}
+.slick-search-group:focus-within {
+  border-color: #6366f1;
+}
+.slick-search-icon {
+  background: transparent !important;
+  border: none !important;
+  color: #94a3b8;
+  padding-left: 1rem !important;
+}
+.slick-search-input {
+  border: none !important;
+  background: transparent !important;
+  font-size: 0.85rem !important;
+  color: #0f172a !important;
+  padding: 0.6rem 0.5rem !important;
+}
+.slick-search-input:focus {
+  box-shadow: none !important;
+}
+
+/* Master Grid Card Layout */
+.slick-table-card {
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #edf2f7;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.015);
+  overflow: hidden;
+}
+.slick-table thead th {
+  background-color: #fafbfc !important;
+  color: #475569 !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 1rem 1.25rem !important;
+  border-bottom: 1px solid #edf2f7 !important;
+}
+.slick-table tbody td {
+  padding: 1rem 1.25rem !important;
+  vertical-align: middle;
+  border-bottom: 1px solid #f8fafc !important;
+}
+.text-mono-sub {
+  font-family: monospace;
+  font-size: 0.78rem;
+  color: #94a3b8;
+}
+
+/* Custom Dynamic Profile Elements */
+.slick-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+.slick-profile-name {
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+.slick-profile-id {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-family: monospace;
+  margin-top: 0.05rem;
+}
+.slick-email {
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+/* Minimalist Quick-Action Icons */
+.slick-action-btn {
+  border-radius: 6px !important;
+  width: 28px;
+  height: 28px;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  transition: background 0.15s;
+}
+.slick-edit-btn {
+  color: #475569 !important;
+  background-color: #f1f5f9 !important;
+}
+.slick-edit-btn:hover {
+  background-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+.slick-delete-btn {
+  color: #ef4444 !important;
+  background-color: #fee2e2 !important;
+}
+.slick-delete-btn:hover {
+  background-color: #fca5a5 !important;
+  color: #991b1b !important;
+}
+
+.slick-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.03em;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.04);
+}
+
+.slick-badge::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  margin-right: 6px;
+  animation: statusPulse 2s infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 0 0 currentColor; }
+  50% { opacity: 0.6; transform: scale(0.8); box-shadow: 0 0 0 3px transparent; }
+}
+
+.slick-badge-warning { background: #fffbeb; color: #b45309; border: 1px solid #fde68a; }
+.slick-badge-success { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+.slick-badge-danger { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.slick-badge-info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+.slick-badge-secondary { background: #f8fafc; color: #475569; border: 1px solid #e2e8f0; }
+
+/* Distinct status colors for at-a-glance separation */
+.slick-badge-pending { background: #fff7ed; color: #9a3412; border: 1px solid #fdba74; }
+.slick-badge-accepted { background: #eff6ff; color: #1e40af; border: 1px solid #93c5fd; }
+.slick-badge-confirmed { background: #f0fdfa; color: #115e59; border: 1px solid #5eead4; }
+.slick-badge-in_progress { background: #faf5ff; color: #6b21a8; border: 1px solid #d8b4fe; }
+.slick-badge-completed { background: #ecfdf5; color: #065f46; border: 1px solid #6ee7b7; }
+.slick-badge-cancelled { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.slick-badge-rejected { background: #fdf2f8; color: #9d174d; border: 1px solid #f9a8d4; }
+
+.slick-empty-state {
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+/* Modal Updates */
+.slick-modal .modal-content {
+  border-radius: 16px !important;
+  padding: 0.5rem;
+}
+
+
+/* Sidebar Shell Base Configuration */
+.slick-sidebar {
+  width: 280px;
+  min-width: 280px;
+  background-color: #0f172a; /* Premium Dark Slate */
+  border-right: 1px solid #1e293b;
+  padding: 1.75rem 1.25rem;
+  height: 100vh;
+}
+
+/* Branding Core Structure */
+.slick-brand-wrapper {
+  padding: 0 0.5rem 2rem 0.5rem;
+  border-bottom: 1px solid #1e293b;
+  margin-bottom: 1.75rem;
+}
+.slick-brand-badge {
+  width: 32px;
+  height: 32px;
+  background-color: #38bdf8;
+  color: #0f172a;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.slick-brand-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #f8fafc;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+.slick-brand-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  display: block;
+}
+
+/* Slick Layout Navigation Anchors */
+.slick-nav-stack {
+  list-style: none;
+  padding: 0;
+}
+.slick-nav-item {
+  color: #94a3b8;
+  text-decoration: none;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 500;
+  transition: all 0.2s ease-in-out;
+  background: transparent;
+}
+.slick-nav-item:hover {
+  color: #f1f5f9;
+  background-color: #1e293b;
+}
+.slick-nav-icon {
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+.slick-nav-item:hover .slick-nav-icon {
+  color: #38bdf8;
+}
+
+/* Active State Design Rules */
+.slick-nav-item.slick-nav-active {
+  background-color: #38bdf8;
+  color: #0f172a !important;
+  font-weight: 600;
+}
+.slick-nav-item.slick-nav-active .slick-nav-icon {
+  color: #0f172a !important;
+}
+
+/* Sidebar Footer & Identity Badge Block */
+.slick-sidebar-footer {
+  border-top: 1px solid #1e293b;
+  padding-top: 1.25rem;
+}
+.slick-avatar-mini {
+  width: 36px;
+  height: 36px;
+  background-color: #334155;
+  color: #f8fafc;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.slick-admin-name {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+.slick-admin-role {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+.slick-logout-btn {
+  color: #ef4444;
+}
+.slick-logout-btn:hover {
+  background-color: #ef444415;
+  color: #fca5a5;
+}
+.slick-logout-btn:hover .slick-nav-icon {
+  color: #fca5a5;
+}
+
+/* Main Stream Content Canvas Wrapper */
+.slick-content-viewport {
+  background-color: #f8fafc !important;
+  height: 100vh;
+}

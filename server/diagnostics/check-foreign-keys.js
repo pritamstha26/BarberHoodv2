@@ -88,7 +88,7 @@ async function checkForeignKeyConstraints() {
     const orphanedRestaurateurs = await sequelize.query(
       `SELECT DISTINCT "restaurateurId" FROM "AppointmentModels" 
        WHERE "restaurateurId" IS NOT NULL 
-       AND "restaurateurId" NOT IN (SELECT id FROM "Users" WHERE role='restaurateurs')`,
+       AND "restaurateurId" NOT IN (SELECT id FROM "UsersModels" WHERE role='restaurateurs')`,
     );
 
     if (orphanedRestaurateurs[0].length > 0) {

@@ -1,6 +1,7 @@
 import { DataTypes } from "sequelize";
 
 import sequelize from "../config/db.js";
+import { UsersModel } from "./model.js";
 
 export const RestaurateurService = sequelize.define("RestaurateurService", {
   id: {
@@ -20,6 +21,25 @@ export const RestaurateurService = sequelize.define("RestaurateurService", {
     type: DataTypes.INTEGER,
     allowNull: false,
   },
+  restaurateurId: {
+    type: DataTypes.INTEGER,
+    allowNull: true,
+    references: {
+      model: UsersModel,
+      key: "id",
+    },
+  },
+}, {
+  tableName: "RestaurateurServices",
+  indexes: [
+    {
+      fields: ["restaurateurId"],
+    },
+    {
+      unique: true,
+      fields: ["restaurateurId", "name"],
+    },
+  ],
 });
 
 export default RestaurateurService;

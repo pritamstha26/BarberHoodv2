@@ -16,7 +16,6 @@ const sequelize = new Sequelize(
 
 export default sequelize;
 export const connectDB = async () => {
-  console.log(process.env.DB_PASSWORD);
   try {
     await sequelize.authenticate();
     console.log("Database connection has been established successfully.");

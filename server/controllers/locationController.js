@@ -1,4 +1,5 @@
 import { UsersModel } from "../models/model.js";
+import AppointmentModel from "../models/appointmentModel.js";
 import {
   findNearbyRestaurateurs,
   calculateDistance,
@@ -13,54 +14,29 @@ import { Op } from "sequelize";
 export const getNearbyRestaurateurs = async (req, res) => {
   try {
     const { latitude, longitude, maxDistance = 10 } = req.query;
-
-    // Validate required parameters
-    if (!latitude || !longitude) {
-      return res.status(400).json({
-        success: false,
-        message: "Latitude and longitude are required",
-      });
-    }
-
-    // Convert to numbers
     const clientLat = parseFloat(latitude);
     const clientLng = parseFloat(longitude);
     const maxDistanceKm = parseFloat(maxDistance);
+    const hasValidCoordinates = Number.isFinite(clientLat) && Number.isFinite(clientLng);
 
-    // Validate parameters
-    if (isNaN(clientLat) || isNaN(clientLng) || isNaN(maxDistanceKm)) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Invalid parameters. Latitude, longitude, and maxDistance must be valid numbers.",
-      });
-    }
-
-    // Get authenticated user ID to exclude from results if they are a restaurateur
-    // Clients should see all restaurateurs
     let excludeUserId = null;
     const token = req.headers.authorization?.split(" ")[1];
     if (token) {
       const decodedToken = decodeToken(token);
       if (decodedToken && decodedToken.role === "restaurateurs") {
-        // Only exclude if the current user is a restaurateur (don't show themselves)
         excludeUserId = decodedToken.id;
       }
     }
 
-    // Build where clause
     const whereClause = {
       role: "restaurateurs",
-      latitude: { [Op.not]: null },
-      longitude: { [Op.not]: null },
+      active_status: true,
     };
 
-    // Exclude current user from results only if they're a restaurateur
     if (excludeUserId) {
       whereClause.id = { [Op.ne]: excludeUserId };
     }
 
-    // Get all restaurateurs with valid locations
     const restaurateurs = await UsersModel.findAll({
       where: whereClause,
       attributes: [
@@ -72,22 +48,70 @@ export const getNearbyRestaurateurs = async (req, res) => {
         "latitude",
         "longitude",
         "location_name",
+        "seat_capacity",
       ],
       raw: true,
     });
 
-    // Find nearby restaurateurs
-    const nearbyRestaurateurs = findNearbyRestaurateurs(
-      clientLat,
-      clientLng,
-      restaurateurs,
-      maxDistanceKm,
+    const withDistance = restaurateurs.map((restaurateur) => {
+      let distance = null;
+
+      if (
+        hasValidCoordinates &&
+        Number.isFinite(clientLat) &&
+        Number.isFinite(clientLng) &&
+        restaurateur.latitude != null &&
+        restaurateur.longitude != null
+      ) {
+        distance = parseFloat(
+          calculateDistance(
+            clientLat,
+            clientLng,
+            Number(restaurateur.latitude),
+            Number(restaurateur.longitude),
+          ).toFixed(2),
+        );
+      }
+
+      return {
+        ...restaurateur,
+        distance,
+      };
+    });
+
+    withDistance.sort((a, b) => {
+      if (a.distance === null && b.distance === null) return 0;
+      if (a.distance === null) return 1;
+      if (b.distance === null) return -1;
+      return a.distance - b.distance;
+    });
+
+    const nearbyWithOccupancy = await Promise.all(
+      withDistance.map(async (restaurateur) => {
+        const seatCapacity = restaurateur.seat_capacity || 10;
+        const activeAppointments = await AppointmentModel.count({
+          where: {
+            restaurateurId: restaurateur.id,
+            status: { [Op.in]: ["pending", "accepted", "in_progress"] },
+          },
+        });
+
+        return {
+          ...restaurateur,
+          seat_capacity: seatCapacity,
+          active_appointments: activeAppointments,
+          occupancy_rate: Number(
+            Math.min(activeAppointments / seatCapacity, 1).toFixed(2),
+          ),
+          seats_remaining: Math.max(seatCapacity - activeAppointments, 0),
+        };
+      }),
     );
 
     return res.status(200).json({
       success: true,
-      count: nearbyRestaurateurs.length,
-      data: nearbyRestaurateurs,
+      count: nearbyWithOccupancy.length,
+      data: nearbyWithOccupancy,
     });
   } catch (error) {
     console.error("Error finding nearby restaurateurs:", error);

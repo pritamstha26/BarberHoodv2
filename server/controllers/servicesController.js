@@ -123,6 +123,7 @@ export async function addService(req, res) {
       where: {
         title,
         service_type,
+        user_id: decodedToken.id,
       },
     });
 
@@ -173,6 +174,7 @@ export async function addService(req, res) {
       clientId,
       restaurateurId: assignedrestaurateurs.id,
       date: new Date(deadline),
+      booked_price: Number(price || service.price || 0),
       status: "pending",
       priority,
       clientType,
@@ -208,21 +210,6 @@ export async function addService(req, res) {
 
 export async function getAllServices(req, res) {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res
-        .status(401)
-        .json({ message: "Authorization header missing or malformed" });
-    }
-
-    const token = authHeader.split(" ")[1];
-    const decodedToken = decodeToken(token);
-    console.log(decodedToken);
-    if (!decodedToken) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
     const services = await ServiceModel.findAll({
       attributes: [
         "id",
@@ -278,15 +265,18 @@ export async function getServiceById(req, res) {
         .json({ message: "Authorization header missing or malformed" });
     }
     const token = authHeader.split(" ")[1];
-    const decodeToken = decodeToken(token);
-    if (!decodeToken) {
+    const decodedToken = decodeToken(token);
+    if (!decodedToken) {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
-    const userId = req.params.id;
-    const service = await ServiceModel.findAll({
-      where: { id: userId },
-      attributes: ["id", "title"],
+    const { id } = req.params;
+    const service = await ServiceModel.findOne({
+      where: {
+        id,
+        user_id: decodedToken.id,
+      },
+      attributes: ["id", "title", "price", "duration", "service_type"],
     });
     if (!service) {
       return res.status(404).json({ error: "Service not found" });
@@ -342,7 +332,8 @@ export async function deleteServiceById(req, res) {
 
     const deleted = await ServiceModel.destroy({
       where: {
-        id: id,
+        id,
+        user_id: decodedToken.id,
       },
     });
 
@@ -380,6 +371,7 @@ export async function updateServiceById(req, res) {
     const service = await ServiceModel.findOne({
       where: {
         id,
+        user_id: decodedToken.id,
       },
     });
 

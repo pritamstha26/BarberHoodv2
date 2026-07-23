@@ -1,5 +1,5 @@
 /**
- * Location utilities for BarberHood
+ * Location utilities for restaurantHood
  * Includes the Haversine formula for calculating distances between coordinates
  */
 
@@ -34,12 +34,12 @@ export function calculateDistance(lat1, lon1, lat2, lon2) {
 }
 
 /**
- * Find nearby barbers based on client location
+ * Find nearby restaurants based on client location
  * @param {number} clientLat - Client latitude
  * @param {number} clientLng - Client longitude
- * @param {Array} restaurateurs - Array of barber objects with latitude and longitude
+ * @param {Array} restaurateurs - Array of restaurant objects with latitude and longitude
  * @param {number} maxDistance - Maximum distance in kilometers (optional, default: 10)
- * @returns {Array} Array of barbers with calculated distance
+ * @returns {Array} Array of restaurants with calculated distance
  */
 export function findNearbyRestaurateurs(
   clientLat,
@@ -52,9 +52,9 @@ export function findNearbyRestaurateurs(
     return [];
   }
 
-  // Calculate distance for each barber
+  // Calculate distance for each restaurant
   const restaurateursWithDistance = restaurateurs.map((restaurateurs) => {
-    // Skip barbers without location data
+    // Skip restaurants without location data
     if (!restaurateurs.latitude || !restaurateurs.longitude) {
       return { ...restaurateurs, distance: Infinity };
     }
@@ -72,7 +72,7 @@ export function findNearbyRestaurateurs(
     };
   });
 
-  // Filter barbers within the maximum distance
+  // Filter restaurants within the maximum distance
   const nearbyRestaurateurs = restaurateursWithDistance.filter(
     (restaurateurs) =>
       restaurateurs.distance !== Infinity &&
